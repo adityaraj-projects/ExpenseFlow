@@ -28,8 +28,12 @@ function getApiBaseUrl() {
     if (isDevClientPort && isLocalhost) {
       return 'http://127.0.0.1:8000/api';
     }
+    if (isLocalhost && port === '8000') {
+      return '/api';
+    }
   }
-  return '/api';
+  // Production Cloud Backend on Render
+  return 'https://expenseflow-3zl0.onrender.com/api';
 }
 
 const API_CONFIG = {
