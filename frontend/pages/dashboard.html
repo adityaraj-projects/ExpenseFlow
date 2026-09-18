@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+  <!-- Chart.js 4.4.2 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Main Content Area -->
+    <div class="app-main">
+      <header class="app-header" id="app-header"></header>
+
+      <main class="page-content">
+        <!-- KPI Summary Cards Grid -->
+        <div class="kpi-grid">
+          <!-- Total Balance -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Total Balance</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-balance">₹0.00</div>
+            <div class="kpi-subtext" style="color: var(--success); font-weight: 600;">Net accumulated savings</div>
+          </div>
+
+          <!-- Monthly Income -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">This Month Income</span>
+              <div class="kpi-icon" style="background-color: var(--success-light); color: var(--success);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 7 17 7 17 17"></polyline><line x1="7" y1="17" x2="17" y2="7"></line></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-income" style="color: var(--success);">₹0.00</div>
+            <div class="kpi-subtext">Current month earnings</div>
+          </div>
+
+          <!-- Monthly Expenses -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">This Month Expense</span>
+              <div class="kpi-icon" style="background-color: var(--danger-light); color: var(--danger);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 7 7 17 7 7"></polyline><line x1="17" y1="17" x2="7" y2="17"></line></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-expense" style="color: var(--danger);">₹0.00</div>
+            <div class="kpi-subtext">Current month total spend</div>
+          </div>
+
+          <!-- Budget Remaining -->
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Remaining Budget</span>
+              <div class="kpi-icon" style="background-color: var(--secondary-light); color: var(--secondary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-budget-remaining">₹0.00</div>
+            <div class="kpi-subtext" id="kpi-budget-sub">0% of budget limit</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid (2 columns: Trend + Doughnut) -->
+        <div class="charts-grid">
+          <!-- Income vs Expense Trend Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Income vs. Expense Trend</h2>
+                <p class="card-subtitle">Last 6 months rolling financial performance</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Expense by Category Doughnut -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Expense Distribution</h2>
+                <p class="card-subtitle">Current month breakdown</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="categoryChart"></canvas>
+              <div id="category-empty-state" class="empty-state" style="display: none; height: 100%; padding: 1rem;">
+                <div class="empty-state-title" style="font-size: 0.9375rem;">No expenses yet</div>
+                <div class="empty-state-desc" style="font-size: 0.8125rem;">Record expenses to view category breakdown.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lower Section: Recent Transactions + Active Budgets & Goals -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="charts-grid">
+          <!-- Recent Transactions -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Recent Transactions</h2>
+                <p class="card-subtitle">Latest activity across your accounts</p>
+              </div>
+              <a href="transactions.html" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th style="text-align: right;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-transactions-tbody"></tbody>
+              </table>
+
+              <div id="tx-empty-state" class="empty-state" style="display: none;">
+                <div class="empty-state-title">No transactions found</div>
+                <div class="empty-state-desc">Start by adding your first income or expense transaction.</div>
+                <button class="btn btn-primary btn-sm" onclick="openQuickAddModal()">+ Add Transaction</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Budgets & Savings Goals -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Monthly Budgets Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Monthly Budgets</h2>
+                  <p class="card-subtitle">Spending limits overview</p>
+                </div>
+                <a href="budgets.html" class="btn btn-ghost btn-sm">Manage</a>
+              </div>
+              <div id="dashboard-budgets-list"></div>
+            </div>
+
+            <!-- Savings Goals Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Savings Goals</h2>
+                  <p class="card-subtitle">Progress to milestones</p>
+                </div>
+                <a href="goals.html" class="btn btn-ghost btn-sm">View All</a>
+              </div>
+              <div id="dashboard-goals-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming & Scheduled Section: Reminders & Recurring -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;" class="charts-grid">
+          <!-- Upcoming Reminders Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Upcoming Reminders</h2>
+                <p class="card-subtitle">Scheduled bills & dues</p>
+              </div>
+              <a href="reminders.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div id="dashboard-reminders-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Upcoming Recurring Transactions Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Recurring Rules</h2>
+                <p class="card-subtitle">Automated income & expense schedules</p>
+              </div>
+              <a href="recurring.html" class="btn btn-ghost btn-sm">Manage</a>
+            </div>
+            <div id="dashboard-recurring-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Quick Add Transaction Modal -->
+  <div class="modal-overlay" id="quick-add-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Transaction</h3>
+        <button type="button" class="btn-icon btn-ghost" id="close-quick-add" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="quick-add-form">
+        <div class="modal-body">
+          <!-- Type Toggle -->
+          <div class="form-group">
+            <label class="form-label">Transaction Type</label>
+            <div style="display: flex; gap: 1rem;">
+              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+                <input type="radio" name="quick-tx-type" value="expense" checked>
+                <span>Expense</span>
+              </label>
+              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+                <input type="radio" name="quick-tx-type" value="income">
+                <span>Income</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Amount -->
+          <div class="form-group">
+            <label for="quick-tx-amount" class="form-label">Amount</label>
+            <input type="number" id="quick-tx-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+          </div>
+
+          <!-- Category -->
+          <div class="form-group">
+            <label for="quick-tx-category" class="form-label">Category</label>
+            <select id="quick-tx-category" class="form-select" required></select>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label for="quick-tx-desc" class="form-label">Description</label>
+            <input type="text" id="quick-tx-desc" class="form-input" placeholder="e.g. Grocery shopping at Blinkit" required maxlength="255">
+          </div>
+
+          <!-- Date -->
+          <div class="form-group">
+            <label for="quick-tx-date" class="form-label">Date</label>
+            <input type="date" id="quick-tx-date" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-quick-add">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-quick-add">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>

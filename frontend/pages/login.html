@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body class="auth-page">
+
+  <div style="position: absolute; top: 1.25rem; right: 1.25rem;">
+    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle Theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <a href="../index.html" class="auth-logo" title="Back to home">EF</a>
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your ExpenseFlow account to continue</p>
+    </div>
+
+    <!-- Quick Demo Account Fill -->
+    <button type="button" class="demo-badge-btn" id="demo-fill-btn">
+      <span>⚡ Autofill Demo Credentials (demo@expenseflow.com)</span>
+    </button>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-input"
+          placeholder="name@example.com"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label for="password" class="form-label">Password</label>
+        </div>
+        <div class="password-input-wrapper">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+          >
+          <button type="button" class="password-toggle-btn" id="toggle-pwd-btn" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.8125rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); cursor: pointer;">
+          <input type="checkbox" id="remember-me" checked>
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" style="width: 100%;">
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="register.html" style="font-weight: 700;">Create account</a>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Redirect if already logged in
+      Auth.redirectIfAuthenticated();
+
+      // Check for session expired query param
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('session_expired')) {
+        showToast('Your session has expired. Please sign in again.', 'warning', 'Session Expired');
+      }
+
+      // Demo fill button
+      const demoBtn = document.getElementById('demo-fill-btn');
+      demoBtn.addEventListener('click', () => {
+        document.getElementById('email').value = 'demo@expenseflow.com';
+        document.getElementById('password').value = 'Password123!';
+        showToast('Demo credentials populated!', 'info');
+      });
+
+      // Password visibility toggle
+      const togglePwdBtn = document.getElementById('toggle-pwd-btn');
+      const pwdInput = document.getElementById('password');
+      togglePwdBtn.addEventListener('click', () => {
+        const type = pwdInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        pwdInput.setAttribute('type', type);
+      });
+
+      // Form submission
+      const form = document.getElementById('login-form');
+      const submitBtn = document.getElementById('submit-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Signing in...</span>';
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+          const data = await ApiClient.post('/auth/login', { email, password });
+          Auth.setSession(data.access_token, data.user);
+          showToast(`Welcome back, ${data.user.full_name}!`, 'success');
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+        } catch (err) {
+          showToast(err.message, 'error', 'Sign In Failed');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Sign In</span>';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

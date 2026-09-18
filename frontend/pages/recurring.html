@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recurring Transactions — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Main Content Area -->
+    <div class="app-main">
+      <header class="app-header" id="app-header"></header>
+
+      <main class="page-content">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="filter-group">
+            <button class="report-time-btn active" data-status="all" onclick="RecurringPage.filterStatus('all', this)">
+              All
+            </button>
+            <button class="report-time-btn" data-status="active" onclick="RecurringPage.filterStatus('active', this)">
+              Active
+            </button>
+            <button class="report-time-btn" data-status="paused" onclick="RecurringPage.filterStatus('paused', this)">
+              Paused
+            </button>
+          </div>
+
+          <div class="filter-group">
+            <button class="btn btn-secondary" onclick="RecurringPage.processDueNow()" title="Check and generate any due recurring transactions immediately">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+              <span>Check Due Now</span>
+            </button>
+            <button class="btn btn-primary" onclick="RecurringPage.openCreateModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>New Recurring Rule</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-responsive">
+            <table class="data-table" id="recurring-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Frequency</th>
+                  <th>Amount</th>
+                  <th>Next Occurrence</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="recurring-tbody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2.5rem;">Loading recurring templates...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Create / Edit Recurring Modal -->
+  <div class="modal-overlay" id="recurring-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="recurring-modal-title">Create Recurring Transaction</h3>
+        <button class="modal-close-btn" onclick="RecurringPage.closeModal()">&times;</button>
+      </div>
+
+      <form id="recurring-form" onsubmit="RecurringPage.saveRecurring(event)">
+        <input type="hidden" id="recurring-id">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="rec-type">Transaction Type *</label>
+            <select id="rec-type" class="form-input" onchange="RecurringPage.onTypeChange()" required>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rec-amount">Amount (₹) *</label>
+            <input type="number" id="rec-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="rec-desc">Description / Label *</label>
+          <input type="text" id="rec-desc" class="form-input" placeholder="e.g. Monthly Rent, Netflix, Salary, Internet Bill" required maxlength="255">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="rec-category">Category *</label>
+            <select id="rec-category" class="form-input" required>
+              <option value="">Select Category</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rec-method">Payment Method</label>
+            <select id="rec-method" class="form-input">
+              <option value="Bank Transfer">Bank Transfer / NetBanking</option>
+              <option value="UPI">UPI</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Other" selected>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="rec-frequency">Recurrence Frequency *</label>
+            <select id="rec-frequency" class="form-input" required>
+              <option value="monthly" selected>Monthly</option>
+              <option value="weekly">Weekly</option>
+              <option value="daily">Daily</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rec-start-date">First Occurrence Date *</label>
+            <input type="date" id="rec-start-date" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="RecurringPage.closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="recurring-submit-btn">Save Rule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/recurring.js"></script>
+</body>
+</html>

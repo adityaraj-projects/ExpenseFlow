@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <aside class="app-sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="app-main">
+      <header class="app-header" id="app-header"></header>
+
+      <main class="page-content">
+        <!-- Summary Stats for Currently Filtered View -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="card" style="padding: 1.25rem;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Filtered Income</div>
+            <div id="summary-filtered-income" class="amount-income" style="font-size: 1.5rem; font-weight: 800; margin-top: 0.25rem;">₹0.00</div>
+          </div>
+          <div class="card" style="padding: 1.25rem;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Filtered Expenses</div>
+            <div id="summary-filtered-expense" class="amount-expense" style="font-size: 1.5rem; font-weight: 800; margin-top: 0.25rem;">₹0.00</div>
+          </div>
+          <div class="card" style="padding: 1.25rem;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Filtered Net Balance</div>
+            <div id="summary-filtered-net" style="font-size: 1.5rem; font-weight: 800; margin-top: 0.25rem;">₹0.00</div>
+          </div>
+        </div>
+
+        <!-- Toolbar & Filter Controls -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="toolbar" style="margin-bottom: 0;">
+            <div class="search-input-wrapper">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="search-input" class="form-input" placeholder="Search by description or category...">
+            </div>
+
+            <div class="filter-group">
+              <select id="filter-type" class="form-select" style="width: auto;">
+                <option value="">All Types</option>
+                <option value="income">Income Only</option>
+                <option value="expense">Expense Only</option>
+              </select>
+
+              <select id="filter-category" class="form-select" style="width: auto;">
+                <option value="">All Categories</option>
+              </select>
+
+              <select id="filter-sort" class="form-select" style="width: auto;">
+                <option value="date-desc">Date (Newest)</option>
+                <option value="date-asc">Date (Oldest)</option>
+                <option value="amount-desc">Amount (Highest)</option>
+                <option value="amount-asc">Amount (Lowest)</option>
+              </select>
+
+              <button type="button" class="btn btn-secondary btn-sm" id="reset-filters-btn">Reset</button>
+              <button type="button" class="btn btn-primary btn-sm" id="open-add-tx-btn">+ Add Transaction</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions Table Card -->
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="table-container" style="border: none;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th style="text-align: right;">Amount</th>
+                  <th style="text-align: right; width: 100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-tbody"></tbody>
+            </table>
+
+            <div id="tx-empty-state" class="empty-state" style="display: none;">
+              <div class="empty-state-title">No transactions found</div>
+              <div class="empty-state-desc">Try adjusting your search filters or record a new transaction.</div>
+              <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Transaction</button>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-bar" style="padding: 1.25rem;">
+            <div class="pagination-info" id="pagination-info">Showing 0 of 0</div>
+            <div class="pagination-controls">
+              <button type="button" class="btn btn-secondary btn-sm" id="prev-page-btn" disabled>Previous</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="next-page-btn" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Add/Edit Transaction Modal -->
+  <div class="modal-overlay" id="tx-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Add Transaction</h3>
+        <button type="button" class="btn-icon btn-ghost" id="close-modal-btn" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="tx-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Transaction Type</label>
+            <div style="display: flex; gap: 1rem;">
+              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+                <input type="radio" name="tx-type" value="expense" checked>
+                <span>Expense</span>
+              </label>
+              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+                <input type="radio" name="tx-type" value="income">
+                <span>Income</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-tx-amount" class="form-label">Amount</label>
+            <input type="number" id="modal-tx-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-tx-category" class="form-label">Category</label>
+            <select id="modal-tx-category" class="form-select" required></select>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-tx-desc" class="form-label">Description</label>
+            <input type="text" id="modal-tx-desc" class="form-input" placeholder="e.g. Monthly Broadband Bill" required maxlength="255">
+          </div>
+
+          <div class="form-group">
+            <label for="modal-tx-date" class="form-label">Date</label>
+            <input type="date" id="modal-tx-date" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-modal-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-modal-btn">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/transactions.js"></script>
+</body>
+</html>

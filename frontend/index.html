@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpenseFlow — Smart Personal Finance & Expense Tracker</title>
+  <meta name="description" content="Master your money with ExpenseFlow. Track expenses, monitor monthly budgets, achieve savings goals, and visualize deep financial analytics.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <style>
+    /* Landing Page Specific Styling */
+    .landing-header {
+      height: 80px;
+      padding: 0 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background-color: rgba(248, 250, 252, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      border-bottom: 1px solid var(--border-color);
+    }
+    [data-theme="dark"] .landing-header {
+      background-color: rgba(11, 15, 25, 0.85);
+    }
+
+    .hero-section {
+      padding: 5.5rem 1.5rem 4rem;
+      text-align: center;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 1rem;
+      border-radius: var(--radius-full);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.8125rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-description {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 4rem;
+    }
+
+    /* Dashboard Mock Preview */
+    .preview-container {
+      max-width: 1100px;
+      margin: 0 auto 6rem;
+      padding: 0 1.5rem;
+    }
+
+    .preview-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .preview-browser-dots {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 1.25rem;
+    }
+    .preview-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background-color: var(--border-color);
+    }
+    .preview-dot:nth-child(1) { background-color: #EF4444; }
+    .preview-dot:nth-child(2) { background-color: #F59E0B; }
+    .preview-dot:nth-child(3) { background-color: #10B981; }
+
+    /* Features Section */
+    .features-section {
+      padding: 5rem 1.5rem;
+      background-color: var(--bg-surface);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 3.5rem;
+    }
+    .section-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      color: var(--text-main);
+    }
+    .section-subtitle {
+      font-size: 1.0625rem;
+      color: var(--text-muted);
+    }
+
+    .features-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-card {
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      background-color: var(--bg-app);
+      border: 1px solid var(--border-color);
+      transition: all var(--transition-base);
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .feature-icon-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-text {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Security Section */
+    .security-banner {
+      max-width: 1100px;
+      margin: 5rem auto;
+      padding: 3rem 2rem;
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(14, 165, 233, 0.08));
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .footer {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.375rem; }
+      .hero-description { font-size: 1rem; }
+      .hero-cta-group { flex-direction: column; width: 100%; }
+      .hero-cta-group .btn { width: 100%; }
+      .landing-header { padding: 0 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header class="landing-header">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <div class="brand-logo">EF</div>
+      <div class="brand-name">Expense<span>Flow</span></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle></svg>
+      </button>
+      <a href="pages/login.html" class="btn btn-secondary btn-sm">Sign In</a>
+      <a href="pages/register.html" class="btn btn-primary btn-sm">Start Tracking</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero-section">
+      <div class="hero-badge">
+        <span>✨ Modern Personal Finance Platform</span>
+      </div>
+
+      <h1 class="hero-title">
+        Take Full Control of Your Money with <span>ExpenseFlow</span>
+      </h1>
+
+      <p class="hero-description">
+        Track your daily expenses, manage monthly category budgets, achieve savings milestones,
+        and get crystal-clear financial insights through real-time charts and analytics.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="pages/register.html" class="btn btn-primary btn-lg">
+          <span>Start Tracking Free</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+        <a href="pages/login.html" class="btn btn-secondary btn-lg">
+          <span>Sign In to Dashboard</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Interactive Mock Dashboard Preview -->
+    <div class="preview-container">
+      <div class="preview-card">
+        <div class="preview-browser-dots">
+          <div class="preview-dot"></div>
+          <div class="preview-dot"></div>
+          <div class="preview-dot"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="padding: 1.25rem; background-color: var(--bg-hover); border-radius: var(--radius-md);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Total Balance</div>
+            <div style="font-size: 1.625rem; font-weight: 800; color: var(--text-main); margin-top: 0.35rem;">₹2,04,920.00</div>
+            <div style="font-size: 0.75rem; color: var(--success); font-weight: 600; margin-top: 0.2rem;">+14.2% from last month</div>
+          </div>
+          <div style="padding: 1.25rem; background-color: var(--bg-hover); border-radius: var(--radius-md);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Monthly Income</div>
+            <div style="font-size: 1.625rem; font-weight: 800; color: var(--success); margin-top: 0.35rem;">₹1,17,000.00</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Tech salary + Freelance</div>
+          </div>
+          <div style="padding: 1.25rem; background-color: var(--bg-hover); border-radius: var(--radius-md);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Monthly Expenses</div>
+            <div style="font-size: 1.625rem; font-weight: 800; color: var(--danger); margin-top: 0.35rem;">₹48,250.00</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">52% of budget used</div>
+          </div>
+          <div style="padding: 1.25rem; background-color: var(--bg-hover); border-radius: var(--radius-md);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Savings in Goals</div>
+            <div style="font-size: 1.625rem; font-weight: 800; color: var(--primary); margin-top: 0.35rem;">₹6,00,000.00</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">4 active targets</div>
+          </div>
+        </div>
+
+        <div style="padding: 1.5rem; background-color: var(--bg-hover); border-radius: var(--radius-md); text-align: center; color: var(--text-muted); font-size: 0.875rem;">
+          🚀 Live interactive dashboard loaded with Chart.js, multi-category budgeting, and real-time MySQL synchronization.
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Features Section -->
+    <section class="features-section">
+      <div class="section-header">
+        <h2 class="section-title">Built for Modern Financial Intelligence</h2>
+        <p class="section-subtitle">Everything you need to track spending, optimize budgets, and hit savings goals with confidence.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <h3 class="feature-title">Effortless Transaction Tracking</h3>
+          <p class="feature-text">Add expenses and income in seconds. Instant search, multi-field filters, and category tagging keep your financial log meticulously organized.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+          </div>
+          <h3 class="feature-title">Smart Monthly Budgets</h3>
+          <p class="feature-text">Set realistic category-specific monthly spending limits. Visual progress bars notify you before you overspend so you stay on track.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+          </div>
+          <h3 class="feature-title">Target Savings Goals</h3>
+          <p class="feature-text">From emergency cushions to dream vacations, track your savings targets, add and withdraw funds, and celebrate every milestone reached.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </div>
+          <h3 class="feature-title">Visual Reports & Analytics</h3>
+          <p class="feature-text">Dynamic Chart.js breakdowns showing income vs. expense trends, category distribution doughnuts, and period comparisons.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3 class="feature-title">Strict Multi-Tenant Security</h3>
+          <p class="feature-text">Industry-standard bcrypt password hashing, cryptographically signed JWT tokens, and isolated database record access.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
+          </div>
+          <h3 class="feature-title">Fluid Dark & Light Modes</h3>
+          <p class="feature-text">A tailored design system crafted for day and night usability with instant seamless theme switching stored locally.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security & Architecture Highlight -->
+    <div class="security-banner">
+      <div>
+        <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">Engineered for Performance & Security</h3>
+        <p style="color: var(--text-secondary); max-width: 580px;">Built on FastAPI, SQLAlchemy ORM, and MySQL 8+ with full relational constraints, indexed foreign keys, and zero external trackers.</p>
+      </div>
+      <a href="pages/register.html" class="btn btn-primary btn-lg">Create Free Account</a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+      <div class="brand-logo" style="width: 28px; height: 28px; font-size: 0.875rem;">EF</div>
+      <strong style="color: var(--text-main);">ExpenseFlow</strong>
+    </div>
+    <p>© 2026 ExpenseFlow. Designed for modern personal finance management.</p>
+  </footer>
+
+  <script src="js/utils.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Note:', err));
+      });
+    }
+  </script>
+</body>
+</html>

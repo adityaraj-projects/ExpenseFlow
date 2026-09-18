@@ -1,0 +1,49 @@
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets
+.env
+*.env
+**/.env
+!.env.example
+!**/.env.example
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS Generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs & Runtime
+*.log
+logs/
+*.pid
+
+# Test & Coverage Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.webp
+*.png
+!frontend/icons/*.png
+.tempmediaStorage/
+.system_generated/

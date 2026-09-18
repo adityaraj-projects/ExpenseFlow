@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports & Analytics — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    .report-time-btn {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.875rem;
+      background: none;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .report-time-btn.active {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <aside class="app-sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="app-main">
+      <header class="app-header" id="app-header"></header>
+
+      <main class="page-content">
+        <!-- Timeframe Selector Bar -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="toolbar" style="margin-bottom: 0;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="report-time-btn" data-timeframe="this_week">This Week</button>
+              <button type="button" class="report-time-btn active" data-timeframe="this_month">This Month</button>
+              <button type="button" class="report-time-btn" data-timeframe="last_month">Last Month</button>
+              <button type="button" class="report-time-btn" data-timeframe="this_year">This Year</button>
+              <button type="button" class="report-time-btn" data-timeframe="custom">Custom Range</button>
+            </div>
+
+            <!-- Custom Date Inputs -->
+            <div id="custom-date-range" style="display: none; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <input type="date" id="report-start-date" class="form-input" style="width: auto;">
+              <span style="color: var(--text-muted);">to</span>
+              <input type="date" id="report-end-date" class="form-input" style="width: auto;">
+              <button type="button" class="btn btn-primary btn-sm" id="apply-custom-dates">Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Total Income</span>
+              <div class="kpi-icon" style="background-color: var(--success-light); color: var(--success);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 7 17 7 17 17"></polyline><line x1="7" y1="17" x2="17" y2="7"></line></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="rep-income-val" style="color: var(--success);">₹0.00</div>
+            <div class="kpi-subtext">Total period earnings</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Total Expenses</span>
+              <div class="kpi-icon" style="background-color: var(--danger-light); color: var(--danger);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 7 7 17 7 7"></polyline><line x1="17" y1="17" x2="7" y2="17"></line></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="rep-expense-val" style="color: var(--danger);">₹0.00</div>
+            <div class="kpi-subtext">Total period expenses</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Net Savings</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="rep-savings-val">₹0.00</div>
+            <div class="kpi-subtext" id="rep-rate-val" style="color: var(--primary); font-weight: 700;">0% savings rate</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-top">
+              <span class="kpi-label">Daily Average Spend</span>
+              <div class="kpi-icon" style="background-color: var(--secondary-light); color: var(--secondary);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+            </div>
+            <div class="kpi-value" id="rep-daily-avg-val">₹0.00</div>
+            <div class="kpi-subtext" id="rep-tx-count-val">0 records analyzed</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Income vs. Expense Timeline</h2>
+                <p class="card-subtitle">Cash flow throughout the selected period</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="reportTimelineChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Expenses by Category</h2>
+                <p class="card-subtitle">Distribution of spending</p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="reportCategoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown Tables -->
+        <div class="charts-grid">
+          <!-- Expense Breakdown Table -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Expense Category Breakdown</h2>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Count</th>
+                    <th>Share</th>
+                    <th style="text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="report-expense-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Income Breakdown Table -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Income Category Breakdown</h2>
+            </div>
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Count</th>
+                    <th>Share</th>
+                    <th style="text-align: right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="report-income-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/notifications.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/reports.js"></script>
+</body>
+</html>

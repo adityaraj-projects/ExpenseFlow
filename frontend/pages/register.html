@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/auth.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body class="auth-page">
+
+  <div style="position: absolute; top: 1.25rem; right: 1.25rem;">
+    <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle Theme">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <a href="../index.html" class="auth-logo" title="Back to home">EF</a>
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-subtitle">Start tracking your finances with precision</p>
+    </div>
+
+    <form id="register-form">
+      <div class="form-group">
+        <label for="full_name" class="form-label">Full Name</label>
+        <input
+          type="text"
+          id="full_name"
+          name="full_name"
+          class="form-input"
+          placeholder="e.g. Aarav Sharma"
+          required
+          minlength="2"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-input"
+          placeholder="name@example.com"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="currency" class="form-label">Preferred Currency</label>
+        <select id="currency" name="currency" class="form-select">
+          <option value="INR" selected>Indian Rupee (₹ INR)</option>
+          <option value="USD">US Dollar ($ USD)</option>
+          <option value="EUR">Euro (€ EUR)</option>
+          <option value="GBP">British Pound (£ GBP)</option>
+          <option value="CAD">Canadian Dollar (C$ CAD)</option>
+          <option value="AUD">Australian Dollar (A$ AUD)</option>
+          <option value="JPY">Japanese Yen (¥ JPY)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <div class="password-input-wrapper">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="Minimum 6 characters"
+            required
+            minlength="6"
+            autocomplete="new-password"
+          >
+        </div>
+        <div class="password-strength-bar">
+          <div class="password-strength-fill" id="strength-fill"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password" class="form-label">Confirm Password</label>
+        <input
+          type="password"
+          id="confirm_password"
+          name="confirm_password"
+          class="form-input"
+          placeholder="Re-enter your password"
+          required
+          minlength="6"
+          autocomplete="new-password"
+        >
+        <div class="form-error" id="match-error" style="display: none;">Passwords do not match.</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg" id="submit-btn" style="width: 100%; margin-top: 0.5rem;">
+        <span>Create Account</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="login.html" style="font-weight: 700;">Sign in</a>
+    </div>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Auth.redirectIfAuthenticated();
+
+      const pwdInput = document.getElementById('password');
+      const confirmInput = document.getElementById('confirm_password');
+      const strengthFill = document.getElementById('strength-fill');
+      const matchError = document.getElementById('match-error');
+      const form = document.getElementById('register-form');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // Password strength listener
+      pwdInput.addEventListener('input', () => {
+        const val = pwdInput.value;
+        strengthFill.className = 'password-strength-fill';
+        if (val.length === 0) {
+          strengthFill.style.width = '0%';
+        } else if (val.length < 6) {
+          strengthFill.classList.add('weak');
+        } else if (val.length < 10 || !/[0-9]/.test(val)) {
+          strengthFill.classList.add('medium');
+        } else {
+          strengthFill.classList.add('strong');
+        }
+      });
+
+      // Confirm password listener
+      confirmInput.addEventListener('input', () => {
+        if (confirmInput.value && pwdInput.value !== confirmInput.value) {
+          matchError.style.display = 'block';
+        } else {
+          matchError.style.display = 'none';
+        }
+      });
+
+      // Form submission
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const full_name = document.getElementById('full_name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const currency = document.getElementById('currency').value;
+        const password = pwdInput.value;
+        const confirm_password = confirmInput.value;
+
+        if (password !== confirm_password) {
+          matchError.style.display = 'block';
+          showToast('Passwords do not match.', 'error');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Creating Account...</span>';
+
+        try {
+          const data = await ApiClient.post('/auth/register', {
+            full_name,
+            email,
+            password,
+            confirm_password,
+            currency
+          });
+
+          Auth.setSession(data.access_token, data.user);
+          showToast('Account created successfully! Default categories initialized.', 'success');
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 1000);
+        } catch (err) {
+          showToast(err.message, 'error', 'Registration Failed');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<span>Create Account</span>';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
