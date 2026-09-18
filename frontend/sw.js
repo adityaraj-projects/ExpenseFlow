@@ -9,7 +9,7 @@
  * - Handles cache versioning and clean activation
  */
 
-const CACHE_NAME = 'expenseflow-shell-v1.0.2';
+const CACHE_NAME = 'expenseflow-shell-v1.0.4';
 
 const STATIC_SHELL_ASSETS = [
   '/',
@@ -113,7 +113,7 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => {
-          return caches.match(request);
+          return caches.match(request, { ignoreSearch: true });
         })
     );
     return;
@@ -121,7 +121,7 @@ self.addEventListener('fetch', event => {
 
   // Static Assets (Icons, Images, Manifest) - Cache First, Network Fallback
   event.respondWith(
-    caches.match(request).then(cached => {
+    caches.match(request, { ignoreSearch: true }).then(cached => {
       if (cached) return cached;
 
       return fetch(request).then(response => {

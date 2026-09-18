@@ -74,6 +74,7 @@ const Auth = {
         <div class="sidebar-header">
           <div class="brand-logo">EF</div>
           <div class="brand-name">Expense<span>Flow</span></div>
+          <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close sidebar">&times;</button>
         </div>
 
         <nav class="sidebar-nav">
@@ -180,11 +181,18 @@ const Auth = {
 
       // Mobile menu toggle listeners
       const menuBtn = document.getElementById('mobile-menu-btn');
+      const closeBtn = document.getElementById('sidebar-close-btn');
       const backdrop = document.getElementById('sidebar-backdrop');
       if (menuBtn && sidebarEl) {
         menuBtn.addEventListener('click', () => {
           sidebarEl.classList.toggle('open');
           if (backdrop) backdrop.classList.toggle('active');
+        });
+      }
+      if (closeBtn && sidebarEl) {
+        closeBtn.addEventListener('click', () => {
+          sidebarEl.classList.remove('open');
+          if (backdrop) backdrop.classList.remove('active');
         });
       }
       if (backdrop && sidebarEl) {
@@ -193,6 +201,17 @@ const Auth = {
           backdrop.classList.remove('active');
         });
       }
+
+      // Auto-close sidebar on mobile navigation
+      const navLinks = sidebarEl.querySelectorAll('.sidebar-nav a');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            sidebarEl.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('active');
+          }
+        });
+      });
     }
 
     // 3. Render Mobile Bottom Navigation
