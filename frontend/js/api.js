@@ -26,7 +26,7 @@ function getApiBaseUrl() {
     const isDevClientPort = ['5500', '3000', '5173', '8080'].includes(port);
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     if (isDevClientPort && isLocalhost) {
-      return 'http://127.0.0.1:8000/api';
+      return localStorage.getItem('expenseflow_api_url') || 'https://expenseflow-3zl0.onrender.com/api';
     }
     if (isLocalhost && port === '8000') {
       return '/api';

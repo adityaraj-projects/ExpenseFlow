@@ -225,25 +225,34 @@ const Auth = {
     bottomNav.innerHTML = `
       <a href="/pages/dashboard.html" class="mobile-nav-link ${activePage === 'dashboard' ? 'active' : ''}">
         ${getSvgIcon('dashboard')}
-        <span>Home</span>
+        <span>Dashboard</span>
       </a>
       <a href="/pages/transactions.html" class="mobile-nav-link ${activePage === 'transactions' ? 'active' : ''}">
         ${getSvgIcon('transactions')}
-        <span>Records</span>
-      </a>
-      <a href="/pages/reminders.html" class="mobile-nav-link ${activePage === 'reminders' ? 'active' : ''}">
-        ${getSvgIcon('reminders')}
-        <span>Remind</span>
+        <span>Transactions</span>
       </a>
       <a href="/pages/budgets.html" class="mobile-nav-link ${activePage === 'budgets' ? 'active' : ''}">
         ${getSvgIcon('budgets')}
         <span>Budgets</span>
       </a>
-      <a href="/pages/reports.html" class="mobile-nav-link ${activePage === 'reports' ? 'active' : ''}">
-        ${getSvgIcon('reports')}
-        <span>Reports</span>
+      <a href="/pages/goals.html" class="mobile-nav-link ${activePage === 'goals' ? 'active' : ''}">
+        ${getSvgIcon('goals')}
+        <span>Goals</span>
       </a>
+      <button type="button" class="mobile-nav-link mobile-nav-more-btn ${['categories', 'reports', 'reminders', 'recurring', 'profile', 'settings'].includes(activePage) ? 'active' : ''}" id="mobile-more-btn" aria-label="Open more menu">
+        ${getSvgIcon('more')}
+        <span>More</span>
+      </button>
     `;
+
+    const moreBtn = document.getElementById('mobile-more-btn');
+    if (moreBtn && sidebarEl) {
+      moreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        sidebarEl.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('active');
+      });
+    }
 
     // Ensure theme icon reflects state
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';

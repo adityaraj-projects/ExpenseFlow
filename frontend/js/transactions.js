@@ -47,20 +47,31 @@ async function loadCategories() {
 async function loadTransactions(page = 1) {
   currentPage = page;
   const tbody = document.getElementById('transactions-tbody');
+  const mobileList = document.getElementById('transactions-mobile-list');
   const emptyState = document.getElementById('tx-empty-state');
   const user = Auth.getCurrentUser();
   const currency = user ? user.currency : 'INR';
 
-  tbody.innerHTML = Array.from({ length: 6 }).map(() => `
-    <tr>
-      <td><div class="skeleton" style="height: 16px; width: 75px; border-radius: 4px;"></div></td>
-      <td><div class="skeleton" style="height: 16px; width: 180px; border-radius: 4px;"></div></td>
-      <td><div class="skeleton" style="height: 16px; width: 90px; border-radius: 4px;"></div></td>
-      <td><div class="skeleton" style="height: 20px; width: 55px; border-radius: 10px;"></div></td>
-      <td style="text-align: right;"><div class="skeleton" style="height: 16px; width: 80px; border-radius: 4px; margin-left: auto;"></div></td>
-      <td style="text-align: right;"><div class="skeleton" style="height: 24px; width: 50px; border-radius: 4px; margin-left: auto;"></div></td>
-    </tr>
-  `).join('');
+  // Desktop table skeleton
+  if (tbody) {
+    tbody.innerHTML = Array.from({ length: 6 }).map(() => `
+      <tr>
+        <td><div class="skeleton" style="height: 16px; width: 75px; border-radius: 4px;"></div></td>
+        <td><div class="skeleton" style="height: 16px; width: 180px; border-radius: 4px;"></div></td>
+        <td><div class="skeleton" style="height: 16px; width: 90px; border-radius: 4px;"></div></td>
+        <td><div class="skeleton" style="height: 20px; width: 55px; border-radius: 10px;"></div></td>
+        <td style="text-align: right;"><div class="skeleton" style="height: 16px; width: 80px; border-radius: 4px; margin-left: auto;"></div></td>
+        <td style="text-align: right;"><div class="skeleton" style="height: 24px; width: 50px; border-radius: 4px; margin-left: auto;"></div></td>
+      </tr>
+    `).join('');
+  }
+
+  // Mobile card list skeleton
+  if (mobileList) {
+    mobileList.innerHTML = Array.from({ length: 4 }).map(() => `
+      <div class="tx-card skeleton-card" style="height: 110px;"></div>
+    `).join('');
+  }
 
   try {
     const params = {
@@ -79,9 +90,10 @@ async function loadTransactions(page = 1) {
     netEl.textContent = formatCurrency(net, currency);
     netEl.className = net >= 0 ? 'amount-income' : 'amount-expense';
 
-    // Render Table Rows
+    // Handle Empty State
     if (!res.items || res.items.length === 0) {
-      tbody.innerHTML = '';
+      if (tbody) tbody.innerHTML = '';
+      if (mobileList) mobileList.innerHTML = '';
       if (emptyState) emptyState.style.display = 'flex';
       renderPagination(0, 0, 15);
       return;
@@ -89,47 +101,96 @@ async function loadTransactions(page = 1) {
 
     if (emptyState) emptyState.style.display = 'none';
 
-    tbody.innerHTML = res.items.map(tx => {
-      const isIncome = tx.type === 'income';
-      const amountClass = isIncome ? 'amount-income' : 'amount-expense';
-      const prefix = isIncome ? '+' : '-';
-      const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
-      const catName = tx.category ? tx.category.name : 'General';
-      const catColor = tx.category ? tx.category.color : '#6366F1';
+    // Render Table Rows (Desktop)
+    if (tbody) {
+      tbody.innerHTML = res.items.map(tx => {
+        const isIncome = tx.type === 'income';
+        const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+        const prefix = isIncome ? '+' : '-';
+        const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
+        const catName = tx.category ? tx.category.name : 'General';
+        const catColor = tx.category ? tx.category.color : '#6366F1';
 
-      return `
-        <tr>
-          <td style="white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted);">
-            ${formatDate(tx.transaction_date)}
-          </td>
-          <td>
-            <span style="font-weight: 600; color: var(--text-main);">${escapeHtml(tx.description)}</span>
-          </td>
-          <td>
-            <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
-              <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${catColor};"></span>
-              ${escapeHtml(catName)}
-            </span>
-          </td>
-          <td>
-            <span class="badge ${badgeClass}">${tx.type}</span>
-          </td>
-          <td class="${amountClass}" style="text-align: right; font-weight: 700; font-size: 0.9375rem;">
-            ${prefix}${formatCurrency(tx.amount, currency)}
-          </td>
-          <td style="text-align: right;">
-            <div style="display: inline-flex; gap: 0.35rem;">
-              <button class="btn-icon btn-ghost" onclick="openEditModal(${tx.id})" title="Edit Transaction">
-                ${getSvgIcon('edit')}
-              </button>
-              <button class="btn-icon btn-ghost" onclick="confirmDeleteTx(${tx.id}, '${escapeHtml(tx.description)}')" title="Delete" style="color: var(--danger);">
-                ${getSvgIcon('trash')}
-              </button>
+        return `
+          <tr>
+            <td style="white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted);">
+              ${formatDate(tx.transaction_date)}
+            </td>
+            <td>
+              <span style="font-weight: 600; color: var(--text-main);">${escapeHtml(tx.description)}</span>
+            </td>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${catColor};"></span>
+                ${escapeHtml(catName)}
+              </span>
+            </td>
+            <td>
+              <span class="badge ${badgeClass}">${tx.type}</span>
+            </td>
+            <td class="${amountClass}" style="text-align: right; font-weight: 700; font-size: 0.9375rem;">
+              ${prefix}${formatCurrency(tx.amount, currency)}
+            </td>
+            <td style="text-align: right;">
+              <div style="display: inline-flex; gap: 0.35rem;">
+                <button class="btn-icon btn-ghost" onclick="openEditModal(${tx.id})" title="Edit Transaction" aria-label="Edit">
+                  ${getSvgIcon('edit')}
+                </button>
+                <button class="btn-icon btn-ghost" onclick="confirmDeleteTx(${tx.id}, '${escapeHtml(tx.description)}')" title="Delete" aria-label="Delete" style="color: var(--danger);">
+                  ${getSvgIcon('trash')}
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render Mobile Cards (Mobile <= 768px)
+    if (mobileList) {
+      mobileList.innerHTML = res.items.map(tx => {
+        const isIncome = tx.type === 'income';
+        const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+        const prefix = isIncome ? '+' : '-';
+        const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
+        const catName = tx.category ? tx.category.name : 'General';
+        const catColor = tx.category ? tx.category.color : '#6366F1';
+
+        return `
+          <div class="tx-card">
+            <div class="tx-card-top">
+              <div style="min-width: 0; flex: 1;">
+                <div class="tx-card-category">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${catColor}; flex-shrink: 0;"></span>
+                  <span>${escapeHtml(catName)}</span>
+                </div>
+                <div class="tx-card-desc">${escapeHtml(tx.description)}</div>
+              </div>
+              <div class="tx-card-amount-wrap">
+                <div class="tx-card-amount ${amountClass}">${prefix}${formatCurrency(tx.amount, currency)}</div>
+                <span class="badge ${badgeClass}" style="margin-top: 0.25rem;">${tx.type}</span>
+              </div>
             </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+            <div class="tx-card-meta">
+              <div class="tx-card-date">
+                ${getSvgIcon('clock')}
+                <span>${formatDate(tx.transaction_date)}</span>
+              </div>
+              <div class="tx-card-actions">
+                <button class="tx-card-action-btn" onclick="openEditModal(${tx.id})" title="Edit" aria-label="Edit Transaction">
+                  ${getSvgIcon('edit')}
+                  <span>Edit</span>
+                </button>
+                <button class="tx-card-action-btn delete-btn" onclick="confirmDeleteTx(${tx.id}, '${escapeHtml(tx.description)}')" title="Delete" aria-label="Delete Transaction">
+                  ${getSvgIcon('trash')}
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     renderPagination(res.total, res.page, res.page_size);
 

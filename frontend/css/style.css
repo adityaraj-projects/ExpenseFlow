@@ -790,3 +790,182 @@ select option {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================
+   Mobile Transaction Cards & Segmented Controls
+   ========================================================== */
+.transactions-mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tx-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.tx-card:active {
+  transform: scale(0.99);
+}
+
+.tx-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.tx-card-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tx-card-desc {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.35;
+  word-break: break-word;
+  margin-bottom: 0.25rem;
+}
+
+.tx-card-amount-wrap {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.tx-card-amount {
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.tx-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.625rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tx-card-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+.tx-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tx-card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tx-card-action-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.tx-card-action-btn.delete-btn {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background-color: var(--danger-light);
+}
+
+.tx-card-action-btn.delete-btn:hover {
+  background-color: var(--danger);
+  color: #FFFFFF;
+}
+
+/* Segmented Toggle Control (Income / Expense) */
+.segmented-control {
+  display: flex;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+  width: 100%;
+}
+
+.segmented-control label {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segmented-control input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented-control .segmented-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  min-height: 42px;
+  user-select: none;
+}
+
+.segmented-control input[type="radio"]:checked + .segmented-label {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmented-control input[type="radio"][value="expense"]:checked + .segmented-label {
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  background-color: var(--danger-light);
+}
+
+.segmented-control input[type="radio"][value="income"]:checked + .segmented-label {
+  color: var(--success);
+  border: 1px solid var(--success-border);
+  background-color: var(--success-light);
+}
+

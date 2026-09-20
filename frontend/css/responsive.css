@@ -282,7 +282,17 @@
     font-size: 0.8125rem !important;
   }
 
-  /* Tables Mobile Touch-Scroll */
+  /* Transactions: Switch from desktop table to mobile card list on mobile */
+  .desktop-tx-table {
+    display: none !important;
+  }
+
+  .transactions-mobile-list {
+    display: flex !important;
+    padding: 0.75rem;
+  }
+
+  /* Tables Mobile Touch-Scroll (for pages still using tables) */
   .table-container, .table-responsive {
     width: 100%;
     overflow-x: auto;
@@ -312,10 +322,12 @@
 
   .modal-container, .modal-card {
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: calc(100vw - 24px) !important;
     margin: 0 auto;
     border-radius: var(--radius-xl) var(--radius-xl) var(--radius-lg) var(--radius-lg);
-    max-height: 88vh;
+    max-height: calc(100vh - 24px) !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-header, .modal-body, .modal-footer {
@@ -330,6 +342,16 @@
   .modal-footer .btn {
     flex: 1;
     justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Touch Targets for Mobile Controls */
+  .btn:not(.btn-icon):not(.btn-text) {
+    min-height: 42px;
+  }
+
+  .btn-sm:not(.btn-icon):not(.btn-text) {
+    min-height: 38px;
   }
 
   /* Notifications Flyout Drawer on Mobile */
@@ -351,7 +373,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 62px;
+    height: 64px;
     background-color: var(--bg-surface);
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
@@ -376,9 +398,15 @@
     font-weight: 600;
     padding: 0.35rem 0.25rem;
     flex: 1;
+    min-height: 44px;
+    min-width: 44px;
     transition: color var(--transition-fast), transform var(--transition-fast);
     text-decoration: none;
     -webkit-tap-highlight-color: transparent;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
   }
 
   .mobile-nav-link.active {
@@ -393,8 +421,8 @@
   }
 
   .mobile-nav-link svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     transition: transform var(--transition-fast);
   }
 
@@ -510,6 +538,14 @@
    Desktop Isolation (min-width: 769px)
    ---------------------------------------------------------- */
 @media (min-width: 769px) {
+  .desktop-tx-table {
+    display: block !important;
+  }
+
+  .transactions-mobile-list {
+    display: none !important;
+  }
+
   .mobile-bottom-nav {
     display: none !important;
   }

@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" type="image/png" href="/icons/favicon.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="../css/style.css?v=1.0.4">
-  <link rel="stylesheet" href="../css/dashboard.css?v=1.0.4">
-  <link rel="stylesheet" href="../css/responsive.css?v=1.0.4">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.5">
+  <link rel="stylesheet" href="../css/dashboard.css?v=1.0.5">
+  <link rel="stylesheet" href="../css/responsive.css?v=1.0.5">
 </head>
 <body>
 
@@ -72,28 +72,38 @@
           </div>
         </div>
 
-        <!-- Transactions Table Card -->
+        <!-- Transactions Card (Desktop Table + Mobile Cards) -->
         <div class="card" style="padding: 0; overflow: hidden;">
-          <div class="table-container" style="border: none;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="width: 140px;">Date</th>
-                  <th>Description</th>
-                  <th>Category</th>
-                  <th>Type</th>
-                  <th style="text-align: right;">Amount</th>
-                  <th style="text-align: right; width: 100px;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="transactions-tbody"></tbody>
-            </table>
-
-            <div id="tx-empty-state" class="empty-state" style="display: none;">
-              <div class="empty-state-title">No transactions found</div>
-              <div class="empty-state-desc">Try adjusting your search filters or record a new transaction.</div>
-              <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Transaction</button>
+          <!-- Desktop Table View -->
+          <div class="desktop-tx-table">
+            <div class="table-container" style="border: none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 140px;">Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: right; width: 100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="transactions-tbody"></tbody>
+              </table>
             </div>
+          </div>
+
+          <!-- Mobile Cards View -->
+          <div id="transactions-mobile-list" class="transactions-mobile-list"></div>
+
+          <!-- Empty State (Shared) -->
+          <div id="tx-empty-state" class="empty-state" style="display: none; padding: 2.5rem 1.5rem;">
+            <div class="empty-state-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="empty-state-title">No transactions found</div>
+            <div class="empty-state-desc">Try adjusting your search filters or record a new transaction.</div>
+            <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Transaction</button>
           </div>
 
           <!-- Pagination -->
@@ -123,21 +133,21 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Transaction Type</label>
-            <div style="display: flex; gap: 1rem;">
-              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+            <div class="segmented-control">
+              <label>
                 <input type="radio" name="tx-type" value="expense" checked>
-                <span>Expense</span>
+                <span class="segmented-label">Expense</span>
               </label>
-              <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); cursor: pointer; font-weight: 600;">
+              <label>
                 <input type="radio" name="tx-type" value="income">
-                <span>Income</span>
+                <span class="segmented-label">Income</span>
               </label>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="modal-tx-amount" class="form-label">Amount</label>
-            <input type="number" id="modal-tx-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" required>
+            <label for="modal-tx-amount" class="form-label">Amount (₹)</label>
+            <input type="number" id="modal-tx-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal" required>
           </div>
 
           <div class="form-group">
