@@ -47,3 +47,4 @@ htmlcov/
 !frontend/icons/*.png
 .tempmediaStorage/
 .system_generated/
+scratch/
