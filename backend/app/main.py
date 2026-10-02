@@ -23,7 +23,9 @@ from app.routers import (
     notifications,
     push,
     preferences,
-    scheduler
+    scheduler,
+    statements,
+    backup
 )
 
 
@@ -113,6 +115,8 @@ app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 app.include_router(push.router, prefix=settings.API_V1_PREFIX)
 app.include_router(preferences.router, prefix=settings.API_V1_PREFIX)
 app.include_router(scheduler.router, prefix=settings.API_V1_PREFIX)
+app.include_router(statements.router, prefix=settings.API_V1_PREFIX)
+app.include_router(backup.router, prefix=settings.API_V1_PREFIX)
 
 # Mount frontend static files
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend")

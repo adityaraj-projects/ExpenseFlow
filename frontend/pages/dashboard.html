@@ -121,7 +121,12 @@
                 <h2 class="card-title">Recent Transactions</h2>
                 <p class="card-subtitle">Latest activity across your accounts</p>
               </div>
-              <a href="transactions.html" class="btn btn-secondary btn-sm">View All</a>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <a href="transactions.html?action=import" class="btn btn-outline-primary btn-sm" id="dashboard-import-btn" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Import Statement
+                </a>
+                <a href="transactions.html" class="btn btn-secondary btn-sm">View All</a>
+              </div>
             </div>
 
             <div class="table-container" style="border: none;">
@@ -130,6 +135,7 @@
                   <tr>
                     <th>Description</th>
                     <th>Category</th>
+                    <th style="width: 110px;">Source</th>
                     <th>Type</th>
                     <th style="text-align: right;">Amount</th>
                   </tr>

@@ -10,6 +10,7 @@ class UserPreferenceBase(BaseModel):
     goal_alerts: bool = True
     recurring_alerts: bool = True
     push_enabled: bool = True
+    monthly_summary_alerts: bool = True
 
 
 class UserPreferenceUpdate(BaseModel):
@@ -19,6 +20,7 @@ class UserPreferenceUpdate(BaseModel):
     goal_alerts: Optional[bool] = None
     recurring_alerts: Optional[bool] = None
     push_enabled: Optional[bool] = None
+    monthly_summary_alerts: Optional[bool] = None
 
 
 class UserPreferenceResponse(UserPreferenceBase):

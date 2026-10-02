@@ -12,6 +12,11 @@ class TransactionBase(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2)
     description: str = Field(..., min_length=1, max_length=255)
     transaction_date: date
+    source: Optional[str] = "manual"
+    transaction_time: Optional[str] = None
+    external_transaction_id: Optional[str] = None
+    external_utr: Optional[str] = None
+    source_reference: Optional[str] = None
 
 
 class TransactionCreate(TransactionBase):
@@ -24,6 +29,11 @@ class TransactionUpdate(BaseModel):
     amount: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
     description: Optional[str] = Field(None, min_length=1, max_length=255)
     transaction_date: Optional[date] = None
+    source: Optional[str] = None
+    transaction_time: Optional[str] = None
+    external_transaction_id: Optional[str] = None
+    external_utr: Optional[str] = None
+    source_reference: Optional[str] = None
 
 
 class TransactionResponse(TransactionBase):

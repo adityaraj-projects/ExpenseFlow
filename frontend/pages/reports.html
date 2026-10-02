@@ -43,10 +43,10 @@
       <header class="app-header" id="app-header"></header>
 
       <main class="page-content">
-        <!-- Timeframe Selector Bar -->
+        <!-- Timeframe & Source Selector Bar -->
         <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
           <div class="toolbar" style="margin-bottom: 0;">
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
               <button type="button" class="report-time-btn" data-timeframe="this_week">This Week</button>
               <button type="button" class="report-time-btn active" data-timeframe="this_month">This Month</button>
               <button type="button" class="report-time-btn" data-timeframe="last_month">Last Month</button>
@@ -60,6 +60,159 @@
               <span style="color: var(--text-muted);">to</span>
               <input type="date" id="report-end-date" class="form-input" style="width: auto;">
               <button type="button" class="btn btn-primary btn-sm" id="apply-custom-dates">Apply</button>
+            </div>
+
+            <!-- Source Filter & PDF Export Action -->
+            <div style="margin-left: auto; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <label for="rep-source-filter" style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);">Source:</label>
+                <select id="rep-source-filter" class="form-select" style="width: auto; padding: 0.4rem 0.75rem; font-size: 0.875rem;">
+                  <option value="all">All Transactions</option>
+                  <option value="phonepe">📱 PhonePe</option>
+                  <option value="cash">💵 Cash / Manual</option>
+                </select>
+              </div>
+
+              <button type="button" class="btn btn-outline-primary btn-sm" id="open-export-pdf-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Export Monthly Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Smart Monthly Financial Summary Section -->
+        <div class="card monthly-summary-card" id="monthly-summary-section" style="margin-bottom: 2rem;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">📊</span>
+                <h2 class="card-title" style="margin: 0; font-size: 1.2rem;">Smart Monthly Financial Summary</h2>
+              </div>
+              <p class="card-subtitle" style="margin-top: 0.25rem;">Comprehensive monthly review, rule-based insights, and trends</p>
+            </div>
+
+            <!-- Month / Year Selector -->
+            <div class="summary-period-selector" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <select id="summary-select-month" class="form-select form-select-sm" style="width: auto; min-width: 120px;">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <select id="summary-select-year" class="form-select form-select-sm" style="width: auto; min-width: 90px;">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" id="summary-refresh-btn" title="Refresh Summary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <div style="padding: 1.25rem 0 0 0;">
+            <!-- Summary KPIs Grid (6 KPIs) -->
+            <div class="summary-kpis-grid">
+              <!-- 1. Total Income -->
+              <div class="summary-kpi-item">
+                <div class="summary-kpi-label">Total Income</div>
+                <div class="summary-kpi-value amount-income" id="sm-income">₹0.00</div>
+                <div class="summary-kpi-meta" id="sm-income-count">0 transactions</div>
+              </div>
+
+              <!-- 2. Total Expenses -->
+              <div class="summary-kpi-item">
+                <div class="summary-kpi-label">Total Expenses</div>
+                <div class="summary-kpi-value amount-expense" id="sm-expense">₹0.00</div>
+                <div class="summary-kpi-meta" id="sm-expense-count">0 transactions</div>
+              </div>
+
+              <!-- 3. Net Savings -->
+              <div class="summary-kpi-item">
+                <div class="summary-kpi-label">Net Savings</div>
+                <div class="summary-kpi-value" id="sm-net-savings">₹0.00</div>
+                <div class="summary-kpi-meta" id="sm-savings-status">Balanced</div>
+              </div>
+
+              <!-- 4. Savings Rate -->
+              <div class="summary-kpi-item">
+                <div class="summary-kpi-label">Savings Rate</div>
+                <div class="summary-kpi-value" id="sm-savings-rate">0.0%</div>
+                <div class="summary-kpi-progress">
+                  <div class="summary-kpi-bar" id="sm-rate-bar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Month-over-Month Comparison Banner -->
+            <div class="mom-comparison-banner" id="mom-comparison-card">
+              <div class="mom-banner-header">
+                <span class="mom-icon" id="mom-trend-icon">📈</span>
+                <span class="mom-headline" id="mom-headline-text">Calculating monthly trend...</span>
+              </div>
+              <div class="mom-chips-row">
+                <div class="mom-chip">
+                  <span class="mom-chip-label">Expenses:</span>
+                  <strong id="mom-expense-diff">—</strong>
+                </div>
+                <div class="mom-chip">
+                  <span class="mom-chip-label">Income:</span>
+                  <strong id="mom-income-diff">—</strong>
+                </div>
+                <div class="mom-chip">
+                  <span class="mom-chip-label">Net Savings:</span>
+                  <strong id="mom-savings-diff">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2-Column Details: Categories & Channel / Insights -->
+            <div class="summary-details-grid">
+              <!-- Left: Top Spending Categories -->
+              <div class="summary-subcard">
+                <div class="summary-subcard-header">
+                  <h3 class="summary-subcard-title">Top Spending Categories</h3>
+                  <span class="badge" id="sm-category-count-badge">0 Categories</span>
+                </div>
+                <div id="sm-top-categories-list" class="sm-category-list">
+                  <div class="empty-state-sm">No expenses recorded for this month</div>
+                </div>
+              </div>
+
+              <!-- Right: Channel Breakdown + Financial Insights -->
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Channel Breakdown -->
+                <div class="summary-subcard">
+                  <div class="summary-subcard-header">
+                    <h3 class="summary-subcard-title">Payment Channel Breakdown</h3>
+                  </div>
+                  <div class="sm-channel-breakdown" id="sm-channel-container">
+                    <!-- Rendered dynamically -->
+                  </div>
+                </div>
+
+                <!-- Rule-based Insights -->
+                <div class="summary-subcard">
+                  <div class="summary-subcard-header">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <span>💡</span>
+                      <h3 class="summary-subcard-title">Monthly Financial Insights</h3>
+                    </div>
+                  </div>
+                  <ul id="sm-insights-list" class="sm-insights-list">
+                    <li>Loading insights...</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -111,6 +264,61 @@
           </div>
         </div>
 
+        <!-- Source Breakdown Overview: PhonePe vs Cash -->
+        <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="card-header" style="padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
+            <div>
+              <h2 class="card-title" style="font-size: 1.05rem;">PhonePe vs. Cash Channel Breakdown</h2>
+              <p class="card-subtitle">Comparison between online digital UPI payments and cash transactions</p>
+            </div>
+          </div>
+          <div class="breakdown-channels-grid">
+            <!-- PhonePe Summary -->
+            <div class="channel-card channel-phonepe">
+              <div class="channel-header">
+                <span class="channel-title">📱 PhonePe</span>
+                <span class="badge" style="background: rgba(124, 58, 237, 0.12); color: #7C3AED; font-weight: 700;">Digital / UPI</span>
+              </div>
+              <div class="channel-stats">
+                <div class="channel-stat-row">
+                  <span class="channel-stat-label">Income:</span>
+                  <span class="channel-stat-val amount-income" id="rep-phonepe-income">₹0.00</span>
+                </div>
+                <div class="channel-stat-row">
+                  <span class="channel-stat-label">Expenses:</span>
+                  <span class="channel-stat-val amount-expense" id="rep-phonepe-expense">₹0.00</span>
+                </div>
+                <div class="channel-stat-row channel-net-row">
+                  <span class="channel-stat-label">Net Flow:</span>
+                  <span class="channel-stat-val" id="rep-phonepe-net">₹0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cash Summary -->
+            <div class="channel-card channel-cash">
+              <div class="channel-header">
+                <span class="channel-title">💵 Cash / Manual</span>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-weight: 700;">Offline</span>
+              </div>
+              <div class="channel-stats">
+                <div class="channel-stat-row">
+                  <span class="channel-stat-label">Income:</span>
+                  <span class="channel-stat-val amount-income" id="rep-cash-income">₹0.00</span>
+                </div>
+                <div class="channel-stat-row">
+                  <span class="channel-stat-label">Expenses:</span>
+                  <span class="channel-stat-val amount-expense" id="rep-cash-expense">₹0.00</span>
+                </div>
+                <div class="channel-stat-row channel-net-row">
+                  <span class="channel-stat-label">Net Flow:</span>
+                  <span class="channel-stat-val" id="rep-cash-net">₹0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Charts Grid -->
         <div class="charts-grid">
           <div class="card">
@@ -122,6 +330,10 @@
             </div>
             <div class="chart-wrapper">
               <canvas id="reportTimelineChart"></canvas>
+              <div id="report-timeline-empty" class="chart-empty-state" style="display: none;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                <span>No income or expense activity in this period</span>
+              </div>
             </div>
           </div>
 
@@ -134,6 +346,10 @@
             </div>
             <div class="chart-wrapper">
               <canvas id="reportCategoryChart"></canvas>
+              <div id="report-category-empty" class="chart-empty-state" style="display: none;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>No expenses recorded in this period</span>
+              </div>
             </div>
           </div>
         </div>
@@ -146,7 +362,7 @@
               <h2 class="card-title">Expense Category Breakdown</h2>
             </div>
             <div class="table-container" style="border: none;">
-              <table class="data-table">
+              <table class="data-table reports-breakdown-table">
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -166,7 +382,7 @@
               <h2 class="card-title">Income Category Breakdown</h2>
             </div>
             <div class="table-container" style="border: none;">
-              <table class="data-table">
+              <table class="data-table reports-breakdown-table">
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -181,6 +397,60 @@
           </div>
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- Export Monthly Statement Modal -->
+  <div class="modal-overlay" id="export-pdf-modal">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Export Monthly Report</h3>
+        <button type="button" class="btn-icon btn-ghost" id="close-export-pdf-btn" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <form id="export-pdf-form">
+        <div class="modal-body">
+          <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            Generate a downloadable, high-quality PDF statement for your selected month. Perfect for record-keeping or sharing with family.
+          </p>
+
+          <div class="form-group">
+            <label for="export-month" class="form-label">Month</label>
+            <select id="export-month" class="form-select" required>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="export-year" class="form-label">Year</label>
+            <select id="export-year" class="form-select" required>
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="cancel-export-pdf-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="download-pdf-submit-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Download PDF
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

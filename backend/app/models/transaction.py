@@ -29,6 +29,11 @@ class Transaction(Base):
     recurring_transaction_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("recurring_transactions.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    source: Mapped[str] = mapped_column(String(50), default="manual", nullable=False, server_default="manual")
+    transaction_time: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    external_transaction_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    external_utr: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    source_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -41,7 +46,9 @@ class Transaction(Base):
         CheckConstraint("amount > 0", name="chk_trans_amount"),
         Index("idx_trans_user_date", "user_id", "transaction_date"),
         Index("idx_trans_recurring_date", "recurring_transaction_id", "transaction_date"),
+        Index("idx_trans_user_ext_id", "user_id", "external_transaction_id"),
+        Index("idx_trans_user_source", "user_id", "source"),
     )
 
     def __repr__(self) -> str:
-        return f"<Transaction id={self.id} type='{self.type}' amount={self.amount} date={self.transaction_date}>"
+        return f"<Transaction id={self.id} type='{self.type}' amount={self.amount} date={self.transaction_date} source='{self.source}'>"

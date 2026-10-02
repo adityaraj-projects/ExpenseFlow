@@ -90,74 +90,95 @@
 
   /* Mobile Top Header */
   .app-header {
-    height: 60px;
-    padding: 0 0.875rem;
+    height: 58px;
+    padding: 0 0.75rem;
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
     z-index: 900;
   }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    gap: 0.5rem;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .menu-toggle-btn {
     display: inline-flex !important;
-    width: 38px;
-    height: 38px;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     border-radius: var(--radius-md);
     background-color: var(--bg-hover);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
   }
 
   .menu-toggle-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     stroke: currentColor;
     display: block;
   }
 
+  .desktop-title-text {
+    display: none !important;
+  }
+
+  .mobile-title-text {
+    display: inline !important;
+  }
+
   .page-title {
-    font-size: 1.125rem;
-    font-weight: 800;
+    font-size: 1.0625rem;
+    font-weight: 700;
     letter-spacing: -0.02em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 175px;
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: none !important;
+    margin: 0;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
+    gap: 0.35rem;
+    flex-shrink: 0 !important;
   }
 
-  /* Mobile Quick Add Button Collapses to Icon FAB */
+  .theme-toggle-btn,
+  .notif-bell-btn,
   #header-quick-add-btn {
-    width: 38px;
-    height: 38px;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     padding: 0 !important;
     border-radius: var(--radius-md);
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0 !important;
   }
 
+  /* Mobile Quick Add Button Collapses to Icon FAB */
   #header-quick-add-btn span {
     display: none !important;
   }
 
   #header-quick-add-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     margin: 0;
   }
 
@@ -314,35 +335,61 @@
     padding: 0.75rem 0.75rem;
   }
 
-  /* Modals on Mobile Viewport */
+  /* Modals on Mobile Viewport — Centered, Responsive & Accessible */
   .modal-overlay {
     padding: 0.75rem;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: center;
   }
 
   .modal-container, .modal-card {
     width: 100% !important;
     max-width: calc(100vw - 24px) !important;
-    margin: 0 auto;
-    border-radius: var(--radius-xl) var(--radius-xl) var(--radius-lg) var(--radius-lg);
-    max-height: calc(100vh - 24px) !important;
-    overflow-y: auto;
+    margin: auto;
+    border-radius: 16px;
+    max-height: calc(100dvh - 24px) !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
   }
 
-  .modal-header, .modal-body, .modal-footer {
-    padding: 1.125rem;
+  .modal-header {
+    padding: 1.125rem 1.25rem;
+  }
+
+  .modal-title {
+    font-size: 1.125rem;
+  }
+
+  .modal-close-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .modal-body,
+  .modal-card > form > .modal-body,
+  .modal-container > form > .modal-body {
+    padding: 1.125rem 1.25rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    min-height: 0;
   }
 
   .modal-footer {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.625rem;
+    padding: 1rem 1.25rem;
   }
 
   .modal-footer .btn {
     flex: 1;
     justify-content: center;
     min-height: 44px;
+    font-size: 0.9375rem;
   }
 
   /* Touch Targets for Mobile Controls */
@@ -504,12 +551,24 @@
    ---------------------------------------------------------- */
 @media (max-width: 360px) {
   .app-header {
-    padding: 0 0.625rem;
+    padding: 0 0.5rem;
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+
+  .header-left {
+    gap: 0.35rem;
+  }
+
+  .header-actions {
+    gap: 0.25rem;
   }
 
   .page-title {
-    font-size: 0.95rem;
-    max-width: 135px;
+    font-size: 0.9375rem;
+    max-width: none !important;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .kpi-grid {
@@ -531,6 +590,134 @@
   #header-quick-add-btn {
     width: 34px !important;
     height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   Settings Page Tech Info Responsive Stacking
+   ---------------------------------------------------------- */
+.tech-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 1rem;
+}
+
+.tech-info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tech-info-label {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.tech-info-value {
+  color: var(--text-main);
+  text-align: right;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .tech-info-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.25rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .tech-info-row .tech-info-value {
+    text-align: left !important;
+    font-size: 0.8125rem !important;
+    word-break: break-word !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   Reports Breakdown Tables Mobile Sizing
+   ---------------------------------------------------------- */
+.reports-breakdown-table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+@media (max-width: 640px) {
+  .reports-breakdown-table th,
+  .reports-breakdown-table td {
+    padding: 0.5rem 0.35rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .reports-breakdown-table th:first-child,
+  .reports-breakdown-table td:first-child {
+    padding-left: 0.5rem !important;
+  }
+
+  .reports-breakdown-table th:last-child,
+  .reports-breakdown-table td:last-child {
+    padding-right: 0.5rem !important;
+  }
+}
+
+/* ----------------------------------------------------------
+   Recurring Transactions Mobile Cards
+   ---------------------------------------------------------- */
+.recurring-mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-recurring-table {
+    display: none !important;
+  }
+
+  .recurring-mobile-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .recurring-card-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .recurring-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .recurring-card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .recurring-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-subtle);
   }
 }
 
@@ -543,6 +730,14 @@
   }
 
   .transactions-mobile-list {
+    display: none !important;
+  }
+
+  .desktop-recurring-table {
+    display: block !important;
+  }
+
+  .recurring-mobile-list {
     display: none !important;
   }
 
@@ -560,5 +755,104 @@
 
   .sidebar-close-btn {
     display: none !important;
+  }
+}
+
+/* ==========================================================
+   Responsive adjustments for Statement Import and Channel Breakdown
+   ========================================================== */
+@media (max-width: 768px) {
+  .modal-container-lg {
+    width: 95% !important;
+    max-height: 94vh !important;
+    padding: 0 !important;
+  }
+
+  .import-dropzone {
+    padding: 1.5rem 1rem !important;
+  }
+
+  .import-summary-bar {
+    padding: 0.75rem 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .import-stat-group {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem 1rem !important;
+  }
+
+  .import-action-buttons {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: stretch !important;
+  }
+
+  .import-action-buttons button {
+    flex: 1 !important;
+  }
+
+  /* Switch desktop preview table to mobile cards on small screens */
+  .import-preview-table {
+    display: none !important;
+  }
+
+  .import-preview-mobile-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.65rem !important;
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  .breakdown-channels-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .import-dropzone h4 {
+    font-size: 1rem !important;
+  }
+
+  .import-preview-card {
+    padding: 0.75rem !important;
+  }
+
+  .import-stat-val {
+    font-size: 1rem !important;
+  }
+}
+
+/* Responsive adaptations for Smart Monthly Summary & Backup/Restore */
+@media (max-width: 900px) {
+  .summary-kpis-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .summary-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 580px) {
+  .monthly-summary-card {
+    padding: 1rem !important;
+  }
+  .summary-kpis-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+  }
+  .mom-chips-row {
+    flex-direction: column !important;
+    gap: 0.4rem !important;
+  }
+  .mom-chip {
+    width: 100% !important;
+  }
+  .restore-counts-grid {
+    grid-template-columns: 1fr !important;
   }
 }

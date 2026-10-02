@@ -62,63 +62,65 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title" id="reminder-modal-title">Create Reminder</h3>
-        <button class="modal-close-btn" onclick="RemindersPage.closeModal()">&times;</button>
+        <button class="modal-close-btn" onclick="RemindersPage.closeModal()" aria-label="Close dialog" title="Close">&times;</button>
       </div>
 
       <form id="reminder-form" onsubmit="RemindersPage.saveReminder(event)">
         <input type="hidden" id="reminder-id">
 
-        <div class="form-group">
-          <label class="form-label" for="rem-title">Title *</label>
-          <input type="text" id="rem-title" class="form-input" placeholder="e.g. Hostel Fee, Rent, Electricity Bill" required maxlength="150">
-        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="rem-title">Title *</label>
+            <input type="text" id="rem-title" class="form-input" placeholder="e.g. Hostel Fee, Rent, Electricity Bill" required maxlength="150">
+          </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="rem-amount">Amount (₹ optional)</label>
-            <input type="number" id="rem-amount" class="form-input" placeholder="0.00" step="0.01" min="0">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="rem-amount">Amount (₹ optional)</label>
+              <input type="number" id="rem-amount" class="form-input" placeholder="0.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="rem-category">Category</label>
+              <select id="rem-category" class="form-input">
+                <option value="">-- None / General --</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="rem-category">Category</label>
-            <select id="rem-category" class="form-input">
-              <option value="">-- None / General --</option>
-            </select>
-          </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="rem-date">Due Date *</label>
-            <input type="date" id="rem-date" class="form-input" required>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="rem-date">Due Date *</label>
+              <input type="date" id="rem-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="rem-time">Time</label>
+              <input type="time" id="rem-time" class="form-input" value="09:00">
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="rem-time">Time</label>
-            <input type="time" id="rem-time" class="form-input" value="09:00">
-          </div>
-        </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label" for="rem-recurrence">Recurrence</label>
-            <select id="rem-recurrence" class="form-input">
-              <option value="once">One-time Only</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="rem-recurrence">Recurrence</label>
+              <select id="rem-recurrence" class="form-input">
+                <option value="once">One-time Only</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="form-group form-group-checkbox">
+              <label class="form-checkbox-label" for="rem-notify">
+                <input type="checkbox" id="rem-notify" checked>
+                <span>Enable Notifications</span>
+              </label>
+            </div>
           </div>
-          <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 8px;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; cursor: pointer; color: var(--text-main);">
-              <input type="checkbox" id="rem-notify" checked style="width: 16px; height: 16px;">
-              Enable Notifications
-            </label>
-          </div>
-        </div>
 
-        <div class="form-group">
-          <label class="form-label" for="rem-desc">Notes / Description</label>
-          <input type="text" id="rem-desc" class="form-input" placeholder="Optional notes (e.g. Account number, billing reference)" maxlength="255">
+          <div class="form-group">
+            <label class="form-label" for="rem-desc">Notes / Description</label>
+            <input type="text" id="rem-desc" class="form-input" placeholder="Optional notes (e.g. Account number, billing reference)" maxlength="255">
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -131,16 +133,16 @@
 
   <!-- Snooze Confirmation Modal -->
   <div class="modal-overlay" id="snooze-modal" style="display: none;">
-    <div class="modal-card" style="max-width: 380px;">
+    <div class="modal-card" style="max-width: 400px;">
       <div class="modal-header">
         <h3 class="modal-title">Snooze Reminder</h3>
-        <button class="modal-close-btn" onclick="RemindersPage.closeSnoozeModal()">&times;</button>
+        <button class="modal-close-btn" onclick="RemindersPage.closeSnoozeModal()" aria-label="Close dialog" title="Close">&times;</button>
       </div>
-      <div style="padding: 1rem 0;">
-        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+      <div class="modal-body">
+        <p style="color: var(--text-secondary); margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.45;">
           Delay reminder notification for this task:
         </p>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.625rem;">
           <button class="btn btn-secondary btn-full" onclick="RemindersPage.confirmSnooze(1)">Snooze 1 Day</button>
           <button class="btn btn-secondary btn-full" onclick="RemindersPage.confirmSnooze(3)">Snooze 3 Days</button>
           <button class="btn btn-secondary btn-full" onclick="RemindersPage.confirmSnooze(7)">Snooze 1 Week</button>

@@ -59,6 +59,12 @@
                 <option value="">All Categories</option>
               </select>
 
+              <select id="filter-source" class="form-select" style="width: auto;">
+                <option value="">All Sources</option>
+                <option value="phonepe">📱 PhonePe</option>
+                <option value="cash">💵 Cash / Manual</option>
+              </select>
+
               <select id="filter-sort" class="form-select" style="width: auto;">
                 <option value="date-desc">Date (Newest)</option>
                 <option value="date-asc">Date (Oldest)</option>
@@ -67,6 +73,9 @@
               </select>
 
               <button type="button" class="btn btn-secondary btn-sm" id="reset-filters-btn">Reset</button>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="open-import-modal-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Import Statement
+              </button>
               <button type="button" class="btn btn-primary btn-sm" id="open-add-tx-btn">+ Add Transaction</button>
             </div>
           </div>
@@ -80,9 +89,10 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th style="width: 140px;">Date</th>
+                    <th style="width: 140px;">Date & Time</th>
                     <th>Description</th>
                     <th>Category</th>
+                    <th style="width: 110px;">Source</th>
                     <th>Type</th>
                     <th style="text-align: right;">Amount</th>
                     <th style="text-align: right; width: 100px;">Actions</th>
@@ -146,6 +156,20 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Transaction Source</label>
+            <div class="segmented-control" id="modal-tx-source-group">
+              <label>
+                <input type="radio" name="tx-source" value="cash" checked>
+                <span class="segmented-label">💵 Cash / Manual</span>
+              </label>
+              <label>
+                <input type="radio" name="tx-source" value="phonepe">
+                <span class="segmented-label">📱 PhonePe</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label for="modal-tx-amount" class="form-label">Amount (₹)</label>
             <input type="number" id="modal-tx-amount" class="form-input" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal" required>
           </div>
@@ -160,9 +184,15 @@
             <input type="text" id="modal-tx-desc" class="form-input" placeholder="e.g. Monthly Broadband Bill" required maxlength="255">
           </div>
 
-          <div class="form-group">
-            <label for="modal-tx-date" class="form-label">Date</label>
-            <input type="date" id="modal-tx-date" class="form-input" required>
+          <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="modal-tx-date" class="form-label">Date</label>
+              <input type="date" id="modal-tx-date" class="form-input" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="modal-tx-time" class="form-label">Time (Optional)</label>
+              <input type="text" id="modal-tx-time" class="form-input" placeholder="e.g. 05:07 PM">
+            </div>
           </div>
         </div>
 
@@ -171,6 +201,105 @@
           <button type="submit" class="btn btn-primary" id="save-modal-btn">Save Transaction</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Import Statement Modal -->
+  <div class="modal-overlay" id="import-modal">
+    <div class="modal-container modal-container-lg">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Import Statement</h3>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">Supported format: PhonePe PDF Statement</p>
+        </div>
+        <button type="button" class="btn-icon btn-ghost" id="close-import-modal-btn" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <!-- Step 1: Upload View -->
+      <div id="import-upload-step" class="modal-body" style="padding: 2.25rem 1.5rem; text-align: center;">
+        <div id="import-dropzone" class="import-dropzone">
+          <div class="import-dropzone-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          </div>
+          <h4 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-main);">Upload PhonePe Statement PDF</h4>
+          <p style="font-size: 0.875rem; color: var(--text-muted); max-width: 440px; margin: 0 auto 1.25rem auto;">
+            Drag & drop your monthly transaction PDF here, or click choose PDF below. Maximum file size: 15MB.
+          </p>
+          <input type="file" id="statement-file-input" accept=".pdf,application/pdf" style="display: none;">
+          <button type="button" class="btn btn-primary" id="choose-pdf-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>Choose PDF
+          </button>
+        </div>
+
+        <!-- Uploading / Processing State -->
+        <div id="import-uploading-state" style="display: none; padding: 2rem 1rem;">
+          <div class="spinner" style="margin: 0 auto 1rem auto; width: 36px; height: 36px; border: 3px solid rgba(37,99,235,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          <h4 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;">Analyzing PhonePe Statement...</h4>
+          <p style="font-size: 0.875rem; color: var(--text-muted);">Extracting dates, merchants, amounts, and checking for duplicates.</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Interactive Preview View -->
+      <div id="import-preview-step" style="display: none; flex-direction: column; max-height: 80vh;">
+        <!-- Summary Bar -->
+        <div class="import-summary-bar">
+          <div class="import-stat-group">
+            <div class="import-stat-item">
+              <span class="import-stat-label">Total Found</span>
+              <span class="import-stat-val" id="prev-total-count">0</span>
+            </div>
+            <div class="import-stat-item">
+              <span class="import-stat-label">New</span>
+              <span class="import-stat-val" id="prev-new-count" style="color: var(--success);">0</span>
+            </div>
+            <div class="import-stat-item">
+              <span class="import-stat-label">Duplicates</span>
+              <span class="import-stat-val" id="prev-dup-count" style="color: #F59E0B;">0</span>
+            </div>
+            <div class="import-stat-item">
+              <span class="import-stat-label">Selected</span>
+              <span class="import-stat-val" id="prev-selected-count" style="color: var(--primary);">0</span>
+            </div>
+          </div>
+          <div class="import-action-buttons">
+            <button type="button" class="btn btn-secondary btn-sm" id="prev-select-all-btn">Select All</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="prev-deselect-all-btn">Deselect All</button>
+          </div>
+        </div>
+
+        <!-- Preview List Container (Scrollable) -->
+        <div class="import-preview-scroll-container">
+          <!-- Desktop Preview Table -->
+          <table class="data-table import-preview-table" id="import-preview-table">
+            <thead>
+              <tr>
+                <th style="width: 44px; text-align: center;">
+                  <input type="checkbox" id="prev-master-checkbox" checked style="cursor: pointer; width: 16px; height: 16px;">
+                </th>
+                <th style="width: 140px;">Date & Time</th>
+                <th>Description / Party</th>
+                <th style="width: 85px;">Type</th>
+                <th style="text-align: right; width: 95px;">Amount</th>
+                <th style="width: 175px;">Category</th>
+                <th style="width: 120px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="import-preview-tbody"></tbody>
+          </table>
+
+          <!-- Mobile Preview Cards List -->
+          <div class="import-preview-mobile-list" id="import-preview-mobile-list"></div>
+        </div>
+
+        <div class="modal-footer" style="border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; flex-shrink: 0;">
+          <button type="button" class="btn btn-secondary" id="import-cancel-btn">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-import-btn">
+            Import Selected (<span id="import-btn-count">0</span>)
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

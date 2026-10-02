@@ -137,4 +137,76 @@ class ApiClient {
   static delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
   }
+
+  static async postFormData(endpoint, formData) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`;
+    const headers = {};
+    const token = localStorage.getItem('expenseflow_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('expenseflow_token');
+        localStorage.removeItem('expenseflow_user');
+        window.location.href = '/pages/login.html?session_expired=true';
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        const errorMsg = data.message || data.detail || (Array.isArray(data.errors) ? data.errors[0] : 'An unexpected error occurred.');
+        throw new Error(errorMsg);
+      }
+      return data;
+    } catch (err) {
+      console.error(`[API Error] POST ${endpoint}:`, err.message);
+      throw err;
+    }
+  }
+
+  static async downloadFile(endpoint, params = {}, defaultFilename = 'report.pdf') {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, val);
+      }
+    });
+    const queryString = query.toString();
+    const fullEndpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
+    const url = fullEndpoint.startsWith('http') ? fullEndpoint : `${API_CONFIG.BASE_URL}${fullEndpoint}`;
+
+    const headers = {};
+    const token = localStorage.getItem('expenseflow_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      let errDetail = 'Failed to generate report.';
+      try {
+        const errJson = await response.json();
+        errDetail = errJson.detail || errJson.message || errDetail;
+      } catch (e) {}
+      throw new Error(errDetail);
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = defaultFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  }
 }

@@ -147,7 +147,7 @@ const Auth = {
     // 2. Render Top Header
     const headerEl = document.getElementById('app-header');
     if (headerEl) {
-      const pageTitles = {
+      const desktopTitles = {
         dashboard: 'Dashboard',
         transactions: 'Transactions',
         budgets: 'Monthly Budgets',
@@ -160,21 +160,37 @@ const Auth = {
         settings: 'Application Settings'
       };
 
+      const mobileTitles = {
+        dashboard: 'Dashboard',
+        transactions: 'Transactions',
+        budgets: 'Budgets',
+        reminders: 'Reminders',
+        recurring: 'Recurring',
+        categories: 'Categories',
+        goals: 'Goals',
+        reports: 'Reports',
+        profile: 'Profile',
+        settings: 'Settings'
+      };
+
       headerEl.innerHTML = `
         <div class="header-left">
           <button class="menu-toggle-btn" id="mobile-menu-btn" aria-label="Toggle navigation">
             ${getSvgIcon('menu')}
           </button>
-          <h1 class="page-title">${pageTitles[activePage] || 'ExpenseFlow'}</h1>
+          <h1 class="page-title">
+            <span class="desktop-title-text">${desktopTitles[activePage] || 'ExpenseFlow'}</span>
+            <span class="mobile-title-text">${mobileTitles[activePage] || 'ExpenseFlow'}</span>
+          </h1>
         </div>
 
         <div class="header-actions">
-          <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+          <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme" title="Toggle theme">
             ${getSvgIcon('moon')}
           </button>
-          <button class="btn btn-primary btn-sm" id="header-quick-add-btn" onclick="openQuickAddModal()">
+          <button class="btn btn-primary btn-sm" id="header-quick-add-btn" onclick="GlobalQuickAdd.open()" aria-label="Quick Add" title="Quick Add">
             ${getSvgIcon('plus')}
-            <span>Add Transaction</span>
+            <span>Add</span>
           </button>
         </div>
       `;
@@ -258,7 +274,8 @@ const Auth = {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     updateThemeIcon(currentTheme);
 
-    // 4. Initialize PWA & Notifications
+    // 4. Initialize Quick Add, PWA & Notifications
+    GlobalQuickAdd.init(activePage);
     PWA.init();
     if (typeof Notifications !== 'undefined') {
       Notifications.init();
@@ -344,4 +361,180 @@ const PWA = {
     updateStatus();
   }
 };
+
+/**
+ * Global Quick Add Controller
+ */
+const GlobalQuickAdd = {
+  activePage: '',
+
+  init(page) {
+    this.activePage = page;
+    this.injectModal();
+  },
+
+  injectModal() {
+    if (document.getElementById('global-quick-add-modal')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'global-quick-add-modal';
+    overlay.style.display = 'none';
+
+    overlay.innerHTML = `
+      <div class="modal-card quick-add-card" style="max-width: 440px; width: 100%;">
+        <div class="modal-header" style="padding-bottom: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="quick-add-badge-icon">
+              ${getSvgIcon('plus')}
+            </div>
+            <div>
+              <h3 class="modal-title" style="margin: 0; font-size: 1.125rem;">Quick Create</h3>
+              <p style="margin: 0; font-size: 0.75rem; color: var(--text-muted);">Choose what you want to add</p>
+            </div>
+          </div>
+          <button type="button" class="modal-close-btn" onclick="GlobalQuickAdd.close()" aria-label="Close modal">&times;</button>
+        </div>
+
+        <div class="quick-add-menu-list">
+          <!-- 1. Add Expense -->
+          <button type="button" class="quick-add-menu-item" onclick="GlobalQuickAdd.select('expense')">
+            <div class="quick-add-item-icon" style="background: rgba(239, 68, 68, 0.12); color: #EF4444;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="7" x2="17" y2="17"></line><polyline points="17 7 17 17 7 17"></polyline></svg>
+            </div>
+            <div class="quick-add-item-content">
+              <span class="quick-add-item-title">Add Expense</span>
+              <span class="quick-add-item-desc">Record spending, bills or purchases</span>
+            </div>
+            <span class="quick-add-item-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+          </button>
+
+          <!-- 2. Add Income -->
+          <button type="button" class="quick-add-menu-item" onclick="GlobalQuickAdd.select('income')">
+            <div class="quick-add-item-icon" style="background: rgba(16, 185, 129, 0.12); color: #10B981;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="17" x2="7" y2="7"></line><polyline points="7 17 7 7 17 7"></polyline></svg>
+            </div>
+            <div class="quick-add-item-content">
+              <span class="quick-add-item-title">Add Income</span>
+              <span class="quick-add-item-desc">Record salary, investments or deposits</span>
+            </div>
+            <span class="quick-add-item-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+          </button>
+
+          <!-- 3. Add Reminder -->
+          <button type="button" class="quick-add-menu-item" onclick="GlobalQuickAdd.select('reminder')">
+            <div class="quick-add-item-icon" style="background: rgba(245, 158, 11, 0.12); color: #F59E0B;">
+              ${getSvgIcon('reminders')}
+            </div>
+            <div class="quick-add-item-content">
+              <span class="quick-add-item-title">Add Reminder</span>
+              <span class="quick-add-item-desc">Schedule a due date for upcoming bills</span>
+            </div>
+            <span class="quick-add-item-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+          </button>
+
+          <!-- 4. Add Recurring Rule -->
+          <button type="button" class="quick-add-menu-item" onclick="GlobalQuickAdd.select('recurring')">
+            <div class="quick-add-item-icon" style="background: rgba(99, 102, 241, 0.12); color: #6366F1;">
+              ${getSvgIcon('recurring')}
+            </div>
+            <div class="quick-add-item-content">
+              <span class="quick-add-item-title">Add Recurring Rule</span>
+              <span class="quick-add-item-desc">Automate repeating subscriptions or income</span>
+            </div>
+            <span class="quick-add-item-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        GlobalQuickAdd.close();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay.classList.contains('active')) {
+        GlobalQuickAdd.close();
+      }
+    });
+  },
+
+  open() {
+    this.injectModal();
+    const overlay = document.getElementById('global-quick-add-modal');
+    if (overlay) {
+      overlay.style.display = 'flex';
+      overlay.classList.add('active');
+    }
+  },
+
+  close() {
+    const overlay = document.getElementById('global-quick-add-modal');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.remove('active');
+    }
+  },
+
+  select(actionType) {
+    this.close();
+
+    if (actionType === 'expense') {
+      if (this.activePage === 'dashboard') {
+        const radio = document.querySelector('input[name="quick-tx-type"][value="expense"]');
+        if (radio) {
+          radio.checked = true;
+          if (typeof populateCategoryDropdown === 'function') populateCategoryDropdown('expense');
+        }
+        const modal = document.getElementById('quick-add-modal');
+        if (modal) modal.classList.add('active');
+      } else if (this.activePage === 'transactions') {
+        if (typeof openAddModal === 'function') openAddModal('expense');
+      } else {
+        window.location.href = '/pages/transactions.html?action=new-expense';
+      }
+    } else if (actionType === 'income') {
+      if (this.activePage === 'dashboard') {
+        const radio = document.querySelector('input[name="quick-tx-type"][value="income"]');
+        if (radio) {
+          radio.checked = true;
+          if (typeof populateCategoryDropdown === 'function') populateCategoryDropdown('income');
+        }
+        const modal = document.getElementById('quick-add-modal');
+        if (modal) modal.classList.add('active');
+      } else if (this.activePage === 'transactions') {
+        if (typeof openAddModal === 'function') openAddModal('income');
+      } else {
+        window.location.href = '/pages/transactions.html?action=new-income';
+      }
+    } else if (actionType === 'reminder') {
+      if (this.activePage === 'reminders' && typeof RemindersPage !== 'undefined' && RemindersPage.openCreateModal) {
+        RemindersPage.openCreateModal();
+      } else {
+        window.location.href = '/pages/reminders.html?action=new';
+      }
+    } else if (actionType === 'recurring') {
+      if (this.activePage === 'recurring' && typeof RecurringPage !== 'undefined' && RecurringPage.openCreateModal) {
+        RecurringPage.openCreateModal();
+      } else {
+        window.location.href = '/pages/recurring.html?action=new';
+      }
+    }
+  }
+};
+
+window.GlobalQuickAdd = GlobalQuickAdd;
+window.openQuickAddModal = () => GlobalQuickAdd.open();
 

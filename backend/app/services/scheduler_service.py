@@ -178,20 +178,142 @@ class SchedulerService:
         return alerts_created
 
     @classmethod
+    def process_upcoming_reminders(cls, db: Session, user_id: Optional[int] = None) -> int:
+        """Alerts users for bills / reminders due tomorrow."""
+        tomorrow = date.today() + timedelta(days=1)
+        query = db.query(Reminder).filter(
+            Reminder.reminder_date == tomorrow,
+            Reminder.status.in_([ReminderStatus.PENDING, ReminderStatus.SNOOZED]),
+            Reminder.notification_enabled == True
+        )
+        if user_id:
+            query = query.filter(Reminder.user_id == user_id)
+
+        upcoming_reminders = query.all()
+        notified_count = 0
+
+        for r in upcoming_reminders:
+            idempotency_key = f"reminder_upcoming_{r.id}_{r.reminder_date.isoformat()}"
+            amt_str = f" of ₹{r.amount:.2f}" if r.amount else ""
+            notif = NotificationService.create_notification(
+                db=db,
+                user_id=r.user_id,
+                title=f"Upcoming Bill: {r.title}",
+                message=f"🔔 '{r.title}'{amt_str} is due tomorrow ({r.reminder_date.strftime('%d %b')}).",
+                notification_type=NotificationType.REMINDER,
+                reference_id=r.id,
+                idempotency_key=idempotency_key
+            )
+            if notif:
+                notified_count += 1
+
+        return notified_count
+
+    @classmethod
+    def process_upcoming_recurring_transactions(cls, db: Session, user_id: Optional[int] = None) -> int:
+        """Notifies users of recurring transactions scheduled for tomorrow."""
+        tomorrow = date.today() + timedelta(days=1)
+        query = db.query(RecurringTransaction).filter(
+            RecurringTransaction.next_occurrence_date == tomorrow,
+            RecurringTransaction.status == RecurringStatus.ACTIVE
+        )
+        if user_id:
+            query = query.filter(RecurringTransaction.user_id == user_id)
+
+        upcoming_rec = query.all()
+        notified_count = 0
+
+        for rec in upcoming_rec:
+            idempotency_key = f"recurring_upcoming_{rec.id}_{rec.next_occurrence_date.isoformat()}"
+            notif = NotificationService.create_notification(
+                db=db,
+                user_id=rec.user_id,
+                title=f"Upcoming Recurring Expense",
+                message=f"🔄 Recurring {rec.type} '{rec.description}' (₹{rec.amount:.2f}) is scheduled for tomorrow.",
+                notification_type=NotificationType.RECURRING_UPCOMING,
+                reference_id=rec.id,
+                idempotency_key=idempotency_key
+            )
+            if notif:
+                notified_count += 1
+
+        return notified_count
+
+    @classmethod
+    def check_monthly_summary_notification(cls, db: Session, user_id: Optional[int] = None) -> int:
+        """Sends monthly financial summary notification for the previous month."""
+        today = date.today()
+        # Previous month
+        first_this_month = date(today.year, today.month, 1)
+        last_day_prev = first_this_month - timedelta(days=1)
+        prev_month = last_day_prev.month
+        prev_year = last_day_prev.year
+        start_prev = date(prev_year, prev_month, 1)
+
+        import calendar
+        month_name = calendar.month_name[prev_month]
+
+        # Target users
+        from app.models.user import User
+        user_query = db.query(User.id)
+        if user_id:
+            user_query = user_query.filter(User.id == user_id)
+        users = [u[0] for u in user_query.all()]
+
+        notified_count = 0
+        for uid in users:
+            idempotency_key = f"monthly_summary_{uid}_{prev_year}_{prev_month:02d}"
+
+            # Check if transactions exist in previous month
+            inc = db.query(func.coalesce(func.sum(Transaction.amount), Decimal("0.00"))).filter(
+                Transaction.user_id == uid,
+                Transaction.type == TransactionType.INCOME,
+                Transaction.transaction_date >= start_prev,
+                Transaction.transaction_date <= last_day_prev
+            ).scalar()
+
+            exp = db.query(func.coalesce(func.sum(Transaction.amount), Decimal("0.00"))).filter(
+                Transaction.user_id == uid,
+                Transaction.type == TransactionType.EXPENSE,
+                Transaction.transaction_date >= start_prev,
+                Transaction.transaction_date <= last_day_prev
+            ).scalar()
+
+            if inc > 0 or exp > 0:
+                saved = inc - exp
+                rate = ((saved / inc) * 100) if inc > 0 else 0.0
+                notif = NotificationService.create_notification(
+                    db=db,
+                    user_id=uid,
+                    title=f"📊 {month_name} Summary",
+                    message=f"Income: ₹{inc:,.2f} • Expenses: ₹{exp:,.2f} • Saved: ₹{saved:,.2f} ({rate:.0f}% savings rate).",
+                    notification_type=NotificationType.MONTHLY_SUMMARY,
+                    idempotency_key=idempotency_key
+                )
+                if notif:
+                    notified_count += 1
+
+        return notified_count
+
+    @classmethod
     def sync_user_scheduled_events(cls, db: Session, user_id: int) -> Dict[str, int]:
         """
         Idempotent per-user event sync called when user loads their dashboard.
         Guarantees users see up-to-date reminders, recurring items, and alerts instantly.
         """
         reminders = cls.process_due_reminders(db, user_id)
+        upcoming_reminders = cls.process_upcoming_reminders(db, user_id)
         recurring = cls.process_due_recurring_transactions(db, user_id)
+        upcoming_recurring = cls.process_upcoming_recurring_transactions(db, user_id)
         budgets = cls.check_budget_thresholds(db, user_id)
         goals = cls.check_savings_deadlines(db, user_id)
+        monthly_summary = cls.check_monthly_summary_notification(db, user_id)
         return {
-            "reminders_notified": reminders,
-            "recurring_generated": recurring,
+            "reminders_notified": reminders + upcoming_reminders,
+            "recurring_generated": recurring + upcoming_recurring,
             "budget_alerts": budgets,
-            "goal_alerts": goals
+            "goal_alerts": goals,
+            "monthly_summary": monthly_summary
         }
 
     @classmethod
@@ -200,12 +322,16 @@ class SchedulerService:
         Global scheduler run invoked by standalone worker / cron daemon.
         """
         reminders = cls.process_due_reminders(db)
+        upcoming_reminders = cls.process_upcoming_reminders(db)
         recurring = cls.process_due_recurring_transactions(db)
+        upcoming_recurring = cls.process_upcoming_recurring_transactions(db)
         budgets = cls.check_budget_thresholds(db)
         goals = cls.check_savings_deadlines(db)
+        monthly_summary = cls.check_monthly_summary_notification(db)
         return {
-            "reminders_notified": reminders,
-            "recurring_generated": recurring,
+            "reminders_notified": reminders + upcoming_reminders,
+            "recurring_generated": recurring + upcoming_recurring,
             "budget_alerts": budgets,
-            "goal_alerts": goals
+            "goal_alerts": goals,
+            "monthly_summary": monthly_summary
         }

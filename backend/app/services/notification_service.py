@@ -46,7 +46,9 @@ class NotificationService:
             return None
         if notification_type in [NotificationType.GOAL_MILESTONE, NotificationType.GOAL_DEADLINE] and not pref.goal_alerts:
             return None
-        if notification_type == NotificationType.RECURRING_GENERATED and not pref.recurring_alerts:
+        if notification_type in [NotificationType.RECURRING_GENERATED, NotificationType.RECURRING_UPCOMING] and not pref.recurring_alerts:
+            return None
+        if notification_type == NotificationType.MONTHLY_SUMMARY and not getattr(pref, 'monthly_summary_alerts', True):
             return None
 
         # Idempotency check

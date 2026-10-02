@@ -97,6 +97,15 @@
               <input type="checkbox" id="pref-recurring" style="width: 18px; height: 18px; cursor: pointer;">
             </div>
 
+            <!-- Monthly Financial Summary Alert -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
+              <div>
+                <div style="font-weight: 700; color: var(--text-main);">Monthly Financial Summary</div>
+                <div style="font-size: 0.8125rem; color: var(--text-muted);">Receive monthly recap of income, expenses, and savings rate</div>
+              </div>
+              <input type="checkbox" id="pref-monthly-summary" style="width: 18px; height: 18px; cursor: pointer;">
+            </div>
+
             <!-- Browser Web Push -->
             <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.25rem; flex-wrap: wrap; gap: 0.75rem;">
               <div>
@@ -114,23 +123,34 @@
           </div>
         </div>
 
-        <!-- Data Export Card -->
+        <!-- Data Backup & Restore Card -->
         <div class="card" style="margin-bottom: 2rem;">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Data Backup & Export</h2>
-              <p class="card-subtitle">Download your complete financial records</p>
+              <h2 class="card-title">Data Backup & Restore</h2>
+              <p class="card-subtitle">Download your complete financial records or restore from a backup file</p>
             </div>
           </div>
 
           <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-            Export all your recorded transactions and categories directly to a JSON backup file for offline inspection or reporting.
+            Create a complete, versioned JSON backup of all your categories, transactions, budgets, savings goals, reminders, recurring rules, and preferences. You can safely restore your backup anytime without creating duplicate records.
           </p>
 
-          <button type="button" class="btn btn-outline-primary" id="export-json-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Export Transactions (JSON)</span>
-          </button>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-primary" id="create-full-backup-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Create Full Backup</span>
+            </button>
+
+            <button type="button" class="btn btn-outline-primary" id="open-restore-modal-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <span>Restore Backup</span>
+            </button>
+
+            <button type="button" class="btn btn-ghost btn-sm" id="export-json-btn" title="Export transactions only">
+              <span>Export Transactions Only</span>
+            </button>
+          </div>
         </div>
 
         <!-- About Card -->
@@ -143,21 +163,21 @@
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">
-            <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
-              <span>Version</span>
-              <strong style="color: var(--text-main);">1.1.0 (PWA + Notifications + Recurring)</strong>
+            <div class="tech-info-row" style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+              <span class="tech-info-label">Version</span>
+              <strong class="tech-info-value" style="color: var(--text-main);">1.1.0 (PWA + Notifications + Recurring)</strong>
             </div>
-            <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
-              <span>Frontend Architecture</span>
-              <strong style="color: var(--text-main);">HTML5, PWA Service Worker, Vanilla JS (ES6+), Chart.js</strong>
+            <div class="tech-info-row" style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+              <span class="tech-info-label">Frontend Architecture</span>
+              <strong class="tech-info-value" style="color: var(--text-main);">HTML5, PWA Service Worker, Vanilla JS (ES6+), Chart.js</strong>
             </div>
-            <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
-              <span>Backend Framework</span>
-              <strong style="color: var(--text-main);">FastAPI + Uvicorn + VAPID Web Push</strong>
+            <div class="tech-info-row" style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+              <span class="tech-info-label">Backend Framework</span>
+              <strong class="tech-info-value" style="color: var(--text-main);">FastAPI + Uvicorn + VAPID Web Push</strong>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>Database & ORM</span>
-              <strong style="color: var(--text-main);">MySQL 8+ with SQLAlchemy 2.0 ORM</strong>
+            <div class="tech-info-row" style="display: flex; justify-content: space-between;">
+              <span class="tech-info-label">Database & ORM</span>
+              <strong class="tech-info-value" style="color: var(--text-main);">MySQL 8+ with SQLAlchemy 2.0 ORM</strong>
             </div>
           </div>
         </div>
@@ -182,21 +202,27 @@
         document.getElementById('pref-reminder').checked = pref.reminder_alerts;
         document.getElementById('pref-goal').checked = pref.goal_alerts;
         document.getElementById('pref-recurring').checked = pref.recurring_alerts;
+        if (document.getElementById('pref-monthly-summary')) {
+          document.getElementById('pref-monthly-summary').checked = pref.monthly_summary_alerts !== false;
+        }
       } catch (e) {
         console.error('Could not load preferences:', e);
       }
 
       // Preference toggle change handlers
-      const prefIds = ['pref-notifications', 'pref-budget', 'pref-reminder', 'pref-goal', 'pref-recurring'];
+      const prefIds = ['pref-notifications', 'pref-budget', 'pref-reminder', 'pref-goal', 'pref-recurring', 'pref-monthly-summary'];
       prefIds.forEach(id => {
-        document.getElementById(id).addEventListener('change', async () => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', async () => {
           try {
             await ApiClient.put('/preferences', {
               notifications_enabled: document.getElementById('pref-notifications').checked,
               budget_alerts: document.getElementById('pref-budget').checked,
               reminder_alerts: document.getElementById('pref-reminder').checked,
               goal_alerts: document.getElementById('pref-goal').checked,
-              recurring_alerts: document.getElementById('pref-recurring').checked
+              recurring_alerts: document.getElementById('pref-recurring').checked,
+              monthly_summary_alerts: document.getElementById('pref-monthly-summary') ? document.getElementById('pref-monthly-summary').checked : true
             });
             showToast('Preferences updated', 'success');
           } catch (e) {
@@ -259,36 +285,267 @@
         }
       });
 
-      // Export JSON backup listener
+      // 1. Create Full Backup (JSON) listener
+      const createFullBackupBtn = document.getElementById('create-full-backup-btn');
+      if (createFullBackupBtn) {
+        createFullBackupBtn.addEventListener('click', async () => {
+          createFullBackupBtn.disabled = true;
+          createFullBackupBtn.textContent = 'Generating Full Backup...';
+
+          try {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const filename = `expenseflow_full_backup_${timestamp}.json`;
+            await ApiClient.downloadFile('/backup/export', {}, filename);
+            showToast('Full backup generated and downloaded successfully!', 'success');
+          } catch (err) {
+            showToast('Backup export failed: ' + err.message, 'error');
+          } finally {
+            createFullBackupBtn.disabled = false;
+            createFullBackupBtn.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Create Full Backup</span>
+            `;
+          }
+        });
+      }
+
+      // 2. Export Transactions Only listener (backward compatibility)
       const exportBtn = document.getElementById('export-json-btn');
-      exportBtn.addEventListener('click', async () => {
-        exportBtn.disabled = true;
-        exportBtn.textContent = 'Generating export...';
+      if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+          exportBtn.disabled = true;
+          exportBtn.textContent = 'Exporting...';
+
+          try {
+            const res = await ApiClient.get('/transactions', { page: 1, page_size: 1000 });
+            const jsonStr = JSON.stringify(res.items, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `expenseflow_transactions_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('Transactions exported successfully!', 'success');
+          } catch (err) {
+            showToast('Export failed: ' + err.message, 'error');
+          } finally {
+            exportBtn.disabled = false;
+            exportBtn.textContent = 'Export Transactions Only';
+          }
+        });
+      }
+
+      // 3. Restore Backup Modal & Flow
+      const restoreModal = document.getElementById('restore-backup-modal');
+      const openRestoreBtn = document.getElementById('open-restore-modal-btn');
+      const closeRestoreBtn = document.getElementById('close-restore-modal-btn');
+      const cancelRestoreBtn = document.getElementById('cancel-restore-btn');
+      const confirmRestoreBtn = document.getElementById('confirm-restore-btn');
+      const backupDropzone = document.getElementById('backup-dropzone');
+      const backupFileInput = document.getElementById('backup-file-input');
+
+      let currentBackupFile = null;
+
+      function resetRestoreModal() {
+        currentBackupFile = null;
+        if (backupFileInput) backupFileInput.value = '';
+        document.getElementById('restore-step-upload').style.display = 'block';
+        document.getElementById('restore-step-confirm').style.display = 'none';
+        document.getElementById('restore-step-result').style.display = 'none';
+        if (confirmRestoreBtn) {
+          confirmRestoreBtn.style.display = 'none';
+          confirmRestoreBtn.disabled = false;
+          confirmRestoreBtn.textContent = 'Restore Backup';
+        }
+        if (cancelRestoreBtn) cancelRestoreBtn.textContent = 'Cancel';
+      }
+
+      if (openRestoreBtn) {
+        openRestoreBtn.addEventListener('click', () => {
+          resetRestoreModal();
+          if (restoreModal) restoreModal.classList.add('active');
+        });
+      }
+
+      const closeRestoreModal = () => {
+        if (restoreModal) restoreModal.classList.remove('active');
+      };
+      if (closeRestoreBtn) closeRestoreBtn.addEventListener('click', closeRestoreModal);
+      if (cancelRestoreBtn) cancelRestoreBtn.addEventListener('click', closeRestoreModal);
+
+      if (backupDropzone && backupFileInput) {
+        backupDropzone.addEventListener('click', () => backupFileInput.click());
+
+        backupDropzone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          backupDropzone.classList.add('dragover');
+        });
+
+        backupDropzone.addEventListener('dragleave', () => {
+          backupDropzone.classList.remove('dragover');
+        });
+
+        backupDropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          backupDropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleBackupFileSelected(e.dataTransfer.files[0]);
+          }
+        });
+
+        backupFileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            handleBackupFileSelected(e.target.files[0]);
+          }
+        });
+      }
+
+      async function handleBackupFileSelected(file) {
+        if (!file.name.toLowerCase().endsWith('.json')) {
+          showToast('Please select a valid .json backup file.', 'error');
+          return;
+        }
+
+        currentBackupFile = file;
+        showToast('Validating backup file...', 'info');
 
         try {
-          const res = await ApiClient.get('/transactions', { page: 1, page_size: 1000 });
-          const jsonStr = JSON.stringify(res.items, null, 2);
-          const blob = new Blob([jsonStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `expenseflow_backup_${new Date().toISOString().slice(0, 10)}.json`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-          showToast('Data exported successfully!', 'success');
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const res = await ApiClient.postFormData('/backup/validate', formData);
+          if (res.valid) {
+            // Update UI elements
+            document.getElementById('restore-app-title').textContent = `${res.application} Backup (v${res.backup_version})`;
+            document.getElementById('restore-created-date').textContent = res.created_at ? `Created: ${new Date(res.created_at).toLocaleString()}` : '';
+
+            document.getElementById('cnt-transactions').textContent = res.counts.transactions || 0;
+            document.getElementById('cnt-categories').textContent = res.counts.categories || 0;
+            document.getElementById('cnt-budgets').textContent = res.counts.budgets || 0;
+            document.getElementById('cnt-goals').textContent = res.counts.savings_goals || 0;
+            document.getElementById('cnt-reminders').textContent = res.counts.reminders || 0;
+            document.getElementById('cnt-recurring').textContent = res.counts.recurring_transactions || 0;
+
+            document.getElementById('restore-step-upload').style.display = 'none';
+            document.getElementById('restore-step-confirm').style.display = 'block';
+            if (confirmRestoreBtn) confirmRestoreBtn.style.display = 'inline-block';
+          }
         } catch (err) {
-          showToast('Export failed: ' + err.message, 'error');
-        } finally {
-          exportBtn.disabled = false;
-          exportBtn.innerHTML = `
-            ${getSvgIcon('download')}
-            <span>Export Transactions (JSON)</span>
-          `;
+          showToast('Validation failed: ' + err.message, 'error');
+          resetRestoreModal();
         }
-      });
+      }
+
+      if (confirmRestoreBtn) {
+        confirmRestoreBtn.addEventListener('click', async () => {
+          if (!currentBackupFile) return;
+
+          confirmRestoreBtn.disabled = true;
+          confirmRestoreBtn.textContent = 'Restoring Data...';
+
+          try {
+            const formData = new FormData();
+            formData.append('file', currentBackupFile);
+
+            const res = await ApiClient.postFormData('/backup/restore', formData);
+
+            document.getElementById('restore-step-confirm').style.display = 'none';
+            document.getElementById('restore-step-result').style.display = 'block';
+            document.getElementById('restore-success-msg').textContent = res.message;
+
+            const detailsEl = document.getElementById('restore-summary-details');
+            if (detailsEl && res.summary) {
+              detailsEl.innerHTML = Object.entries(res.summary).map(([k, v]) => `
+                <div style="display: flex; justify-content: space-between; padding: 2px 0;">
+                  <span style="text-transform: capitalize;">${k.replace('_', ' ')}:</span>
+                  <span><b>+${v.imported}</b> imported • <b>${v.skipped}</b> skipped</span>
+                </div>
+              `).join('');
+            }
+
+            confirmRestoreBtn.style.display = 'none';
+            if (cancelRestoreBtn) cancelRestoreBtn.textContent = 'Close';
+
+            showToast(`Restore complete: ${res.total_imported} imported, ${res.total_skipped} skipped.`, 'success');
+          } catch (err) {
+            showToast('Restore failed: ' + err.message, 'error');
+            confirmRestoreBtn.disabled = false;
+            confirmRestoreBtn.textContent = 'Retry Restore';
+          }
+        });
+      }
     });
   </script>
+
+  <!-- Restore Backup Modal -->
+  <div class="modal-overlay" id="restore-backup-modal">
+    <div class="modal-container" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Restore Data Backup</h3>
+        <button type="button" class="btn-icon btn-ghost" id="close-restore-modal-btn" aria-label="Close modal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Step 1: File Selection -->
+        <div id="restore-step-upload">
+          <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Select a previously created ExpenseFlow JSON backup file to validate and restore.
+          </p>
+
+          <div class="import-dropzone" id="backup-dropzone" style="margin-bottom: 1rem; cursor: pointer;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="color: var(--primary); margin-bottom: 0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <p style="margin: 0; font-weight: 600; color: var(--text-main);">Click or drag & drop JSON backup file here</p>
+            <span style="font-size: 0.8125rem; color: var(--text-muted);">Supported format: ExpenseFlow JSON (up to 10MB)</span>
+            <input type="file" id="backup-file-input" accept=".json,application/json" style="display: none;">
+          </div>
+        </div>
+
+        <!-- Step 2: Validated Backup Summary & Confirmation -->
+        <div id="restore-step-confirm" style="display: none;">
+          <div class="card" style="background: var(--bg-hover); padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <strong style="color: var(--text-main); font-size: 0.95rem;" id="restore-app-title">ExpenseFlow v1.0</strong>
+              <span class="badge" style="background: var(--success-light); color: var(--success);">Valid Backup</span>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted);" id="restore-created-date">Created: —</div>
+          </div>
+
+          <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Data Detected to Restore:</h4>
+          <div class="restore-counts-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Transactions:</span> <strong id="cnt-transactions" style="color: var(--text-main); float: right;">0</strong></div>
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Categories:</span> <strong id="cnt-categories" style="color: var(--text-main); float: right;">0</strong></div>
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Budgets:</span> <strong id="cnt-budgets" style="color: var(--text-main); float: right;">0</strong></div>
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Savings Goals:</span> <strong id="cnt-goals" style="color: var(--text-main); float: right;">0</strong></div>
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Reminders:</span> <strong id="cnt-reminders" style="color: var(--text-main); float: right;">0</strong></div>
+            <div class="restore-chip" style="background: var(--bg-surface); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--border-subtle);"><span style="color: var(--text-muted); font-size: 0.8125rem;">Recurring Rules:</span> <strong id="cnt-recurring" style="color: var(--text-main); float: right;">0</strong></div>
+          </div>
+
+          <div style="background: rgba(37, 99, 235, 0.08); border-left: 3px solid var(--primary); padding: 0.75rem; border-radius: 4px; font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            🔒 <b>Duplicate Safe:</b> Existing transactions and categories will be skipped automatically. No records will be overwritten or lost.
+          </div>
+        </div>
+
+        <!-- Step 3: Success Result -->
+        <div id="restore-step-result" style="display: none;">
+          <div style="text-align: center; padding: 1.5rem 0;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+            <h3 style="color: var(--text-main); font-size: 1.15rem; margin-bottom: 0.5rem;">Restore Completed</h3>
+            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;" id="restore-success-msg"></p>
+            <div id="restore-summary-details" style="font-size: 0.8125rem; color: var(--text-muted); text-align: left; background: var(--bg-hover); padding: 0.75rem; border-radius: var(--radius-md);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" id="restore-modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-restore-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-restore-btn" style="display: none;">Restore Backup</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

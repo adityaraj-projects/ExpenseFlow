@@ -71,6 +71,65 @@ def sync_database_schema():
                     pass
                 conn.commit()
                 print("[Database Migration] Added recurring_transaction_id column to transactions table.")
+
+            # Columns for statement import & source tracking
+            new_cols = [
+                ("source", "VARCHAR(50) NOT NULL DEFAULT 'manual'"),
+                ("transaction_time", "VARCHAR(20) NULL"),
+                ("external_transaction_id", "VARCHAR(100) NULL"),
+                ("external_utr", "VARCHAR(100) NULL"),
+                ("source_reference", "VARCHAR(255) NULL")
+            ]
+            for col_name, col_def in new_cols:
+                col_res = conn.execute(text(
+                    f"SELECT COUNT(*) FROM information_schema.columns "
+                    f"WHERE table_schema = DATABASE() AND table_name = 'transactions' AND column_name = '{col_name}'"
+                ))
+                if not col_res.scalar():
+                    conn.execute(text(f"ALTER TABLE transactions ADD COLUMN {col_name} {col_def}"))
+                    conn.commit()
+                    print(f"[Database Migration] Added {col_name} column to transactions table.")
+
+            # Add indexes if missing
+            indexes_to_add = [
+                ("idx_trans_user_ext_id", "user_id, external_transaction_id"),
+                ("idx_trans_user_source", "user_id, source")
+            ]
+            for idx_name, idx_cols in indexes_to_add:
+                idx_res = conn.execute(text(
+                    f"SELECT COUNT(*) FROM information_schema.statistics "
+                    f"WHERE table_schema = DATABASE() AND table_name = 'transactions' AND index_name = '{idx_name}'"
+                ))
+                if not idx_res.scalar():
+                    try:
+                        conn.execute(text(f"CREATE INDEX {idx_name} ON transactions ({idx_cols})"))
+                        conn.commit()
+                        print(f"[Database Migration] Created index {idx_name} on transactions.")
+                    except Exception:
+                        pass
+
+            # Migration for user_preferences.monthly_summary_alerts
+            pref_res = conn.execute(text(
+                "SELECT COUNT(*) FROM information_schema.columns "
+                "WHERE table_schema = DATABASE() AND table_name = 'user_preferences' AND column_name = 'monthly_summary_alerts'"
+            ))
+            if not pref_res.scalar():
+                conn.execute(text("ALTER TABLE user_preferences ADD COLUMN monthly_summary_alerts BOOLEAN NOT NULL DEFAULT TRUE"))
+                conn.commit()
+                print("[Database Migration] Added monthly_summary_alerts column to user_preferences table.")
+
+            # Migration for notifications.type (widen to VARCHAR(50) to support new notification types)
+            notif_type_res = conn.execute(text(
+                "SELECT DATA_TYPE FROM information_schema.columns "
+                "WHERE table_schema = DATABASE() AND table_name = 'notifications' AND column_name = 'type'"
+            )).scalar()
+            if notif_type_res and notif_type_res.lower() == 'enum':
+                try:
+                    conn.execute(text("ALTER TABLE notifications MODIFY COLUMN type VARCHAR(50) NOT NULL"))
+                    conn.commit()
+                    print("[Database Migration] Upgraded notifications.type from ENUM to VARCHAR(50).")
+                except Exception as ex:
+                    print(f"[Database Migration Warning] notifications.type alter: {ex}")
     except Exception as e:
         print(f"[Database Migration Warning] Error running additive migrations: {e}")
 

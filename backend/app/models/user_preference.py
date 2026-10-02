@@ -15,6 +15,7 @@ class UserPreference(Base):
     goal_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     recurring_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     push_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    monthly_summary_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships

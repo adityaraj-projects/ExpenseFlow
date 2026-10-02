@@ -13,6 +13,33 @@ const RemindersPage = {
     Auth.initAppShell('reminders');
     await this.loadCategories();
     await this.loadReminders();
+    this.initBackdropListeners();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'new') {
+      this.openCreateModal();
+    }
+  },
+
+  initBackdropListeners() {
+    const remModal = document.getElementById('reminder-modal');
+    if (remModal) {
+      remModal.addEventListener('click', (e) => {
+        if (e.target === remModal) RemindersPage.closeModal();
+      });
+    }
+    const snoozeModal = document.getElementById('snooze-modal');
+    if (snoozeModal) {
+      snoozeModal.addEventListener('click', (e) => {
+        if (e.target === snoozeModal) RemindersPage.closeSnoozeModal();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        RemindersPage.closeModal();
+        RemindersPage.closeSnoozeModal();
+      }
+    });
   },
 
   async loadCategories() {
@@ -21,7 +48,7 @@ const RemindersPage = {
       const select = document.getElementById('rem-category');
       if (select) {
         select.innerHTML = '<option value="">-- None / General --</option>' +
-          this.categories.map(c => `<option value="${c.id}">${c.name} (${c.type})</option>`).join('');
+          this.categories.map(c => `<option value="${c.id}">${this.escapeHtml(c.name)} (${c.type})</option>`).join('');
       }
     } catch (e) {
       console.error('Failed to load categories:', e);
@@ -155,7 +182,10 @@ const RemindersPage = {
     RemindersPage.loadReminders();
   }, 300),
 
-  openCreateModal() {
+  async openCreateModal() {
+    if (!this.categories || this.categories.length === 0) {
+      await this.loadCategories();
+    }
     document.getElementById('reminder-modal-title').textContent = 'Create Reminder';
     document.getElementById('reminder-id').value = '';
     document.getElementById('rem-title').value = '';
@@ -166,10 +196,17 @@ const RemindersPage = {
     document.getElementById('rem-recurrence').value = 'once';
     document.getElementById('rem-notify').checked = true;
     document.getElementById('rem-desc').value = '';
-    document.getElementById('reminder-modal').style.display = 'flex';
+    const modal = document.getElementById('reminder-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   },
 
-  openEditModal(id) {
+  async openEditModal(id) {
+    if (!this.categories || this.categories.length === 0) {
+      await this.loadCategories();
+    }
     const r = this.reminders.find(item => item.id === id);
     if (!r) return;
 
@@ -183,42 +220,70 @@ const RemindersPage = {
     document.getElementById('rem-recurrence').value = r.recurrence;
     document.getElementById('rem-notify').checked = r.notification_enabled;
     document.getElementById('rem-desc').value = r.description || '';
-    document.getElementById('reminder-modal').style.display = 'flex';
+    const modal = document.getElementById('reminder-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   },
 
   closeModal() {
-    document.getElementById('reminder-modal').style.display = 'none';
+    const modal = document.getElementById('reminder-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
   },
 
   async saveReminder(e) {
-    e.preventDefault();
-    const id = document.getElementById('reminder-id').value;
-    const title = document.getElementById('rem-title').value.trim();
-    const amountVal = document.getElementById('rem-amount').value;
-    const categoryId = document.getElementById('rem-category').value;
-    const reminderDate = document.getElementById('rem-date').value;
-    const reminderTime = document.getElementById('rem-time').value;
-    const recurrence = document.getElementById('rem-recurrence').value;
-    const notify = document.getElementById('rem-notify').checked;
-    const description = document.getElementById('rem-desc').value.trim();
-
-    if (!title || !reminderDate) {
-      showToast('Title and Due Date are required', 'error');
-      return;
+    if (e && e.preventDefault) e.preventDefault();
+    const submitBtn = document.getElementById('reminder-submit-btn');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
     }
 
-    const payload = {
-      title,
-      amount: amountVal ? parseFloat(amountVal) : null,
-      category_id: categoryId ? parseInt(categoryId) : null,
-      reminder_date: reminderDate,
-      reminder_time: reminderTime || null,
-      recurrence,
-      notification_enabled: notify,
-      description: description || null
-    };
-
     try {
+      const id = document.getElementById('reminder-id').value;
+      const title = document.getElementById('rem-title').value.trim();
+      const amountVal = document.getElementById('rem-amount').value.trim();
+      const categoryId = document.getElementById('rem-category').value;
+      const reminderDate = document.getElementById('rem-date').value;
+      const reminderTime = document.getElementById('rem-time').value;
+      const recurrence = document.getElementById('rem-recurrence').value;
+      const notify = document.getElementById('rem-notify').checked;
+      const description = document.getElementById('rem-desc').value.trim();
+
+      if (!title || !reminderDate) {
+        showToast('Title and Due Date are required', 'error');
+        return;
+      }
+
+      let parsedAmount = null;
+      if (amountVal !== '' && !isNaN(parseFloat(amountVal))) {
+        parsedAmount = parseFloat(amountVal);
+        if (parsedAmount < 0) {
+          showToast('Amount must be positive or zero', 'error');
+          return;
+        }
+      }
+
+      let parsedCategoryId = null;
+      if (categoryId && !isNaN(parseInt(categoryId))) {
+        parsedCategoryId = parseInt(categoryId);
+      }
+
+      const payload = {
+        title,
+        amount: parsedAmount,
+        category_id: parsedCategoryId,
+        reminder_date: reminderDate,
+        reminder_time: reminderTime || null,
+        recurrence,
+        notification_enabled: notify,
+        description: description || null
+      };
+
       if (id) {
         await ApiClient.put(`/reminders/${id}`, payload);
         showToast('Reminder updated successfully', 'success');
@@ -226,10 +291,15 @@ const RemindersPage = {
         await ApiClient.post('/reminders', payload);
         showToast('Reminder created successfully', 'success');
       }
-      this.closeModal();
-      await this.loadReminders();
+      RemindersPage.closeModal();
+      await RemindersPage.loadReminders();
     } catch (err) {
       showToast(`Error: ${err.message || 'Could not save reminder'}`, 'error');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Reminder';
+      }
     }
   },
 
@@ -245,12 +315,20 @@ const RemindersPage = {
 
   openSnoozeModal(id) {
     this.snoozeTargetId = id;
-    document.getElementById('snooze-modal').style.display = 'flex';
+    const modal = document.getElementById('snooze-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   },
 
   closeSnoozeModal() {
     this.snoozeTargetId = null;
-    document.getElementById('snooze-modal').style.display = 'none';
+    const modal = document.getElementById('snooze-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
   },
 
   async confirmSnooze(days) {
@@ -283,6 +361,8 @@ const RemindersPage = {
     return div.innerHTML;
   }
 };
+
+window.RemindersPage = RemindersPage;
 
 document.addEventListener('DOMContentLoaded', () => {
   RemindersPage.init();

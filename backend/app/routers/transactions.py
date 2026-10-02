@@ -29,6 +29,7 @@ def get_transactions(
     end_date: Optional[date] = Query(None, description="End date filter"),
     min_amount: Optional[Decimal] = Query(None, ge=0, description="Minimum amount filter"),
     max_amount: Optional[Decimal] = Query(None, ge=0, description="Maximum amount filter"),
+    source: Optional[str] = Query(None, description="Filter by source: 'phonepe', 'cash', 'manual', 'all'"),
     sort_by: str = Query("date", pattern="^(date|amount)$", description="Sort field"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort direction"),
     page: int = Query(1, ge=1, description="Page number"),
@@ -68,6 +69,21 @@ def get_transactions(
 
     if max_amount is not None:
         base_query = base_query.filter(Transaction.amount <= max_amount)
+
+    if source and source.strip() and source.lower() != "all":
+        s_lower = source.strip().lower()
+        if s_lower in ["cash", "manual"]:
+            base_query = base_query.filter(
+                or_(
+                    Transaction.source == "cash",
+                    Transaction.source == "manual",
+                    Transaction.source.is_(None)
+                )
+            )
+        elif s_lower == "phonepe":
+            base_query = base_query.filter(Transaction.source == "phonepe")
+        else:
+            base_query = base_query.filter(Transaction.source == source.strip())
 
     # Calculate filtered aggregates
     aggregates = base_query.with_entities(
@@ -141,11 +157,24 @@ def create_transaction(
         type=tx_in.type,
         amount=tx_in.amount,
         description=tx_in.description.strip(),
-        transaction_date=tx_in.transaction_date
+        transaction_date=tx_in.transaction_date,
+        source=tx_in.source or "manual",
+        transaction_time=tx_in.transaction_time,
+        external_transaction_id=tx_in.external_transaction_id,
+        external_utr=tx_in.external_utr,
+        source_reference=tx_in.source_reference
     )
     db.add(new_tx)
     db.commit()
     db.refresh(new_tx)
+
+    # Check budget thresholds if expense
+    if new_tx.type == TransactionType.EXPENSE:
+        try:
+            from app.services.scheduler_service import SchedulerService
+            SchedulerService.check_budget_thresholds(db, current_user.id)
+        except Exception:
+            pass
 
     # Eager load category for response
     new_tx.category = category
@@ -225,9 +254,27 @@ def update_transaction(
         tx.description = tx_in.description.strip()
     if tx_in.transaction_date is not None:
         tx.transaction_date = tx_in.transaction_date
+    if tx_in.source is not None:
+        tx.source = tx_in.source
+    if tx_in.transaction_time is not None:
+        tx.transaction_time = tx_in.transaction_time
+    if tx_in.external_transaction_id is not None:
+        tx.external_transaction_id = tx_in.external_transaction_id
+    if tx_in.external_utr is not None:
+        tx.external_utr = tx_in.external_utr
+    if tx_in.source_reference is not None:
+        tx.source_reference = tx_in.source_reference
 
     db.commit()
     db.refresh(tx)
+
+    if tx.type == TransactionType.EXPENSE:
+        try:
+            from app.services.scheduler_service import SchedulerService
+            SchedulerService.check_budget_thresholds(db, current_user.id)
+        except Exception:
+            pass
+
     return tx
 
 

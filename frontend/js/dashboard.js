@@ -279,12 +279,18 @@ function renderRecentTransactions(transactions, currency) {
     const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
     const catName = tx.category ? tx.category.name : 'General';
     const catColor = tx.category ? tx.category.color : '#6366F1';
+    const isPhonePe = (tx.source || '').toLowerCase() === 'phonepe';
+    const sourceBadge = isPhonePe
+      ? `<span class="source-badge source-badge-phonepe">📱 PhonePe</span>`
+      : `<span class="source-badge source-badge-cash">💵 Cash</span>`;
+
+    const timeHtml = tx.transaction_time ? ` &bull; ${escapeHtml(tx.transaction_time)}` : '';
 
     return `
       <tr>
         <td>
           <div style="font-weight: 600; color: var(--text-main);">${escapeHtml(tx.description)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${formatDate(tx.transaction_date)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${formatDate(tx.transaction_date)}${timeHtml}</div>
         </td>
         <td>
           <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
@@ -293,9 +299,12 @@ function renderRecentTransactions(transactions, currency) {
           </span>
         </td>
         <td>
+          ${sourceBadge}
+        </td>
+        <td>
           <span class="badge ${badgeClass}">${tx.type}</span>
         </td>
-        <td class="${amountClass}" style="text-align: right; font-size: 0.9375rem;">
+        <td class="${amountClass}" style="text-align: right; font-size: 0.9375rem; font-weight: 700;">
           ${prefix}${formatCurrency(tx.amount, currency)}
         </td>
       </tr>
@@ -493,7 +502,17 @@ function populateCategoryDropdown(txType) {
   const select = document.getElementById('quick-tx-category');
   if (!select) return;
 
-  const filtered = userCategories.filter(c => c.type === 'both' || c.type === txType);
+  const targetType = (txType || 'expense').toLowerCase();
+  const filtered = (userCategories || []).filter(c => {
+    const cType = (c.type || '').toLowerCase();
+    return cType === 'both' || cType === targetType;
+  });
+
+  if (filtered.length === 0) {
+    select.innerHTML = `<option value="">No ${targetType} categories found</option>`;
+    return;
+  }
+
   select.innerHTML = filtered.map(c => `
     <option value="${c.id}">${escapeHtml(c.name)}</option>
   `).join('');
@@ -501,7 +520,7 @@ function populateCategoryDropdown(txType) {
 
 function initQuickAddModal() {
   const modalOverlay = document.getElementById('quick-add-modal');
-  const openBtns = document.querySelectorAll('#quick-add-btn, #header-quick-add-btn');
+  const openBtns = document.querySelectorAll('#quick-add-btn');
   const closeBtns = document.querySelectorAll('#close-quick-add, #cancel-quick-add');
   const form = document.getElementById('quick-add-form');
   const typeRadios = document.querySelectorAll('input[name="quick-tx-type"]');
@@ -517,7 +536,12 @@ function initQuickAddModal() {
     });
   });
 
-  window.openQuickAddModal = () => {
+  window.openQuickAddModal = (defaultType = 'expense') => {
+    const isIncome = (defaultType || '').toLowerCase() === 'income';
+    const targetType = isIncome ? 'income' : 'expense';
+    const radio = document.querySelector(`input[name="quick-tx-type"][value="${targetType}"]`);
+    if (radio) radio.checked = true;
+    populateCategoryDropdown(targetType);
     modalOverlay.classList.add('active');
   };
 

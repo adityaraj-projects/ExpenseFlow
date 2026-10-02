@@ -14,6 +14,8 @@ class NotificationType(str, enum.Enum):
     GOAL_MILESTONE = "goal_milestone"
     GOAL_DEADLINE = "goal_deadline"
     RECURRING_GENERATED = "recurring_generated"
+    RECURRING_UPCOMING = "recurring_upcoming"
+    MONTHLY_SUMMARY = "monthly_summary"
     SYSTEM = "system"
 
 
