@@ -257,59 +257,101 @@ function renderCategoryBreakdownChart(breakdownItems, currency) {
 }
 
 /**
- * Render Recent Transactions Table
+ * Render Recent Transactions (Desktop Table + Mobile Cards)
  */
 function renderRecentTransactions(transactions, currency) {
   const tbody = document.getElementById('recent-transactions-tbody');
+  const mobileContainer = document.getElementById('recent-transactions-mobile');
   const emptyState = document.getElementById('tx-empty-state');
-  if (!tbody) return;
+  if (!tbody && !mobileContainer) return;
 
   if (!transactions || transactions.length === 0) {
-    tbody.innerHTML = '';
+    if (tbody) tbody.innerHTML = '';
+    if (mobileContainer) mobileContainer.innerHTML = '';
     if (emptyState) emptyState.style.display = 'flex';
     return;
   }
 
   if (emptyState) emptyState.style.display = 'none';
 
-  tbody.innerHTML = transactions.map(tx => {
-    const isIncome = tx.type === 'income';
-    const amountClass = isIncome ? 'amount-income' : 'amount-expense';
-    const prefix = isIncome ? '+' : '-';
-    const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
-    const catName = tx.category ? tx.category.name : 'General';
-    const catColor = tx.category ? tx.category.color : '#6366F1';
-    const isPhonePe = (tx.source || '').toLowerCase() === 'phonepe';
-    const sourceBadge = isPhonePe
-      ? `<span class="source-badge source-badge-phonepe">📱 PhonePe</span>`
-      : `<span class="source-badge source-badge-cash">💵 Cash</span>`;
+  // Desktop Table Render
+  if (tbody) {
+    tbody.innerHTML = transactions.map(tx => {
+      const isIncome = tx.type === 'income';
+      const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+      const prefix = isIncome ? '+' : '-';
+      const badgeClass = isIncome ? 'badge-income' : 'badge-expense';
+      const catName = tx.category ? tx.category.name : 'General';
+      const catColor = tx.category ? tx.category.color : '#6366F1';
+      const isPhonePe = (tx.source || '').toLowerCase() === 'phonepe';
+      const sourceBadge = isPhonePe
+        ? `<span class="source-badge source-badge-phonepe">📱 PhonePe</span>`
+        : `<span class="source-badge source-badge-cash">💵 Cash</span>`;
 
-    const timeHtml = tx.transaction_time ? ` &bull; ${escapeHtml(tx.transaction_time)}` : '';
+      const timeHtml = tx.transaction_time ? ` &bull; ${escapeHtml(tx.transaction_time)}` : '';
 
-    return `
-      <tr>
-        <td>
-          <div style="font-weight: 600; color: var(--text-main);">${escapeHtml(tx.description)}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${formatDate(tx.transaction_date)}${timeHtml}</div>
-        </td>
-        <td>
-          <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${catColor}; display: inline-block;"></span>
-            ${escapeHtml(catName)}
-          </span>
-        </td>
-        <td>
-          ${sourceBadge}
-        </td>
-        <td>
-          <span class="badge ${badgeClass}">${tx.type}</span>
-        </td>
-        <td class="${amountClass}" style="text-align: right; font-size: 0.9375rem; font-weight: 700;">
-          ${prefix}${formatCurrency(tx.amount, currency)}
-        </td>
-      </tr>
-    `;
-  }).join('');
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 600; color: var(--text-main);">${escapeHtml(tx.description)}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${formatDate(tx.transaction_date)}${timeHtml}</div>
+          </td>
+          <td>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${catColor}; display: inline-block;"></span>
+              ${escapeHtml(catName)}
+            </span>
+          </td>
+          <td>
+            ${sourceBadge}
+          </td>
+          <td>
+            <span class="badge ${badgeClass}">${tx.type}</span>
+          </td>
+          <td class="${amountClass}" style="text-align: right; font-size: 0.9375rem; font-weight: 700;">
+            ${prefix}${formatCurrency(tx.amount, currency)}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Mobile Cards Render (<= 640px)
+  if (mobileContainer) {
+    mobileContainer.innerHTML = transactions.map(tx => {
+      const isIncome = tx.type === 'income';
+      const amountClass = isIncome ? 'amount-income' : 'amount-expense';
+      const prefix = isIncome ? '+' : '-';
+      const catName = tx.category ? tx.category.name : 'General';
+      const catColor = tx.category ? tx.category.color : '#6366F1';
+      const isPhonePe = (tx.source || '').toLowerCase() === 'phonepe';
+      const sourceBadge = isPhonePe
+        ? `<span class="source-badge source-badge-phonepe" style="padding: 2px 6px; font-size: 0.6875rem;">📱 PhonePe</span>`
+        : `<span class="source-badge source-badge-cash" style="padding: 2px 6px; font-size: 0.6875rem;">💵 Cash</span>`;
+
+      const timeHtml = tx.transaction_time ? ` &bull; ${escapeHtml(tx.transaction_time)}` : '';
+
+      return `
+        <div class="dash-tx-row">
+          <div class="dash-tx-left">
+            <span class="dash-tx-cat-dot" style="background-color: ${catColor};"></span>
+            <div class="dash-tx-details">
+              <div class="dash-tx-desc">${escapeHtml(tx.description)}</div>
+              <div class="dash-tx-meta">
+                <span>${escapeHtml(catName)}</span>
+                <span>&bull;</span>
+                <span>${formatDate(tx.transaction_date)}${timeHtml}</span>
+              </div>
+            </div>
+          </div>
+          <div class="dash-tx-right">
+            <div class="dash-tx-amount ${amountClass}">${prefix}${formatCurrency(tx.amount, currency)}</div>
+            ${sourceBadge}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 /**
@@ -321,9 +363,9 @@ function renderBudgetProgress(budgets, currency) {
 
   if (!budgets || budgets.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.875rem;">
-        No budgets set for this month.<br>
-        <a href="/pages/budgets.html" style="font-weight: 600; margin-top: 0.5rem; display: inline-block;">+ Set Category Budget</a>
+      <div class="dashboard-empty-widget">
+        <p class="dashboard-empty-text">No budgets set for this month.</p>
+        <a href="budgets.html" class="dashboard-empty-link">+ Set Category Budget</a>
       </div>
     `;
     return;
@@ -335,19 +377,19 @@ function renderBudgetProgress(budgets, currency) {
 
     return `
       <div style="margin-bottom: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8125rem;">
-          <span style="font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${b.category_color};"></span>
-            ${escapeHtml(b.category_name)}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8125rem; gap: 0.5rem;">
+          <span style="font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${b.category_color}; flex-shrink: 0;"></span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(b.category_name)}</span>
           </span>
-          <span style="color: var(--text-muted); font-size: 0.75rem;">
+          <span style="color: var(--text-muted); font-size: 0.75rem; flex-shrink: 0; white-space: nowrap;">
             ${formatCurrency(b.spent_amount, currency)} / ${formatCurrency(b.budget_amount, currency)}
           </span>
         </div>
         <div class="progress-track">
           <div class="progress-fill ${fillClass}" style="width: ${widthPct}%;"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.6875rem; color: var(--text-muted);">
+        <div style="display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.6875rem; color: var(--text-muted); flex-wrap: wrap; gap: 0.25rem;">
           <span>${b.percentage_used}% used</span>
           <span style="${b.remaining_amount <= 0 ? 'color: var(--danger); font-weight: 700;' : ''}">
             ${b.remaining_amount <= 0 ? 'Exceeded limit' : formatCurrency(b.remaining_amount, currency) + ' left'}
@@ -367,9 +409,9 @@ function renderSavingsGoalsProgress(goals, currency) {
 
   if (!goals || goals.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.875rem;">
-        No active savings goals.<br>
-        <a href="/pages/goals.html" style="font-weight: 600; margin-top: 0.5rem; display: inline-block;">+ Create Savings Goal</a>
+      <div class="dashboard-empty-widget">
+        <p class="dashboard-empty-text">No active savings goals.</p>
+        <a href="goals.html" class="dashboard-empty-link">+ Create Savings Goal</a>
       </div>
     `;
     return;
@@ -379,14 +421,14 @@ function renderSavingsGoalsProgress(goals, currency) {
     const isDone = g.status === 'completed';
     return `
       <div style="margin-bottom: 1.25rem; padding-bottom: 0.875rem; border-bottom: 1px solid var(--border-subtle);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-          <span style="font-size: 0.875rem; font-weight: 700; color: var(--text-main);">${escapeHtml(g.name)}</span>
-          <span class="badge ${isDone ? 'badge-income' : 'badge-primary'}">${isDone ? 'Completed' : g.progress_percentage + '%'}</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.5rem;">
+          <span style="font-size: 0.875rem; font-weight: 700; color: var(--text-main); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(g.name)}</span>
+          <span class="badge ${isDone ? 'badge-income' : 'badge-primary'}" style="flex-shrink: 0;">${isDone ? 'Completed' : g.progress_percentage + '%'}</span>
         </div>
         <div class="progress-track" style="margin: 0.4rem 0;">
           <div class="progress-fill safe" style="width: ${Math.min(100, g.progress_percentage)}%;"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); flex-wrap: wrap; gap: 0.25rem;">
           <span>Saved: ${formatCurrency(g.current_amount, currency)}</span>
           <span>Target: ${formatCurrency(g.target_amount, currency)}</span>
         </div>
@@ -405,9 +447,9 @@ function renderUpcomingReminders(reminders, currency) {
 
   if (!reminders || reminders.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.875rem;">
-        No upcoming reminders.<br>
-        <a href="/pages/reminders.html" style="font-weight: 600; margin-top: 0.5rem; display: inline-block;">+ Add Reminder</a>
+      <div class="dashboard-empty-widget">
+        <p class="dashboard-empty-text">No upcoming reminders.</p>
+        <a href="reminders.html" class="dashboard-empty-link">+ Add Reminder</a>
       </div>
     `;
     return;
@@ -449,9 +491,9 @@ function renderUpcomingRecurring(recurring, currency) {
 
   if (!recurring || recurring.length === 0) {
     container.innerHTML = `
-      <div style="text-align: center; padding: 1.5rem 0; color: var(--text-muted); font-size: 0.875rem;">
-        No recurring transactions active.<br>
-        <a href="/pages/recurring.html" style="font-weight: 600; margin-top: 0.5rem; display: inline-block;">+ Set Up Recurring</a>
+      <div class="dashboard-empty-widget">
+        <p class="dashboard-empty-text">No recurring transactions active.</p>
+        <a href="recurring.html" class="dashboard-empty-link">+ Set Up Recurring</a>
       </div>
     `;
     return;

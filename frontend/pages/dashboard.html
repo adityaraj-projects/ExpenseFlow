@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" type="image/png" href="/icons/favicon.png">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="../css/style.css?v=1.0.5">
-  <link rel="stylesheet" href="../css/dashboard.css?v=1.0.5">
-  <link rel="stylesheet" href="../css/responsive.css?v=1.0.5">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.6">
+  <link rel="stylesheet" href="../css/dashboard.css?v=1.0.6">
+  <link rel="stylesheet" href="../css/responsive.css?v=1.0.6">
   <!-- Chart.js 4.4.2 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
@@ -113,15 +113,15 @@
         </div>
 
         <!-- Lower Section: Recent Transactions + Active Budgets & Goals -->
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="charts-grid">
+        <div class="dashboard-split-grid charts-grid">
           <!-- Recent Transactions -->
-          <div class="card">
-            <div class="card-header">
+          <div class="card dashboard-recent-tx-card">
+            <div class="card-header dashboard-card-header">
               <div>
                 <h2 class="card-title">Recent Transactions</h2>
                 <p class="card-subtitle">Latest activity across your accounts</p>
               </div>
-              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <div class="dashboard-header-actions">
                 <a href="transactions.html?action=import" class="btn btn-outline-primary btn-sm" id="dashboard-import-btn" style="display: inline-flex; align-items: center; gap: 0.35rem;">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Import Statement
                 </a>
@@ -129,7 +129,7 @@
               </div>
             </div>
 
-            <div class="table-container" style="border: none;">
+            <div class="table-container dashboard-tx-table-wrap" style="border: none;">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -149,12 +149,15 @@
                 <button class="btn btn-primary btn-sm" onclick="openQuickAddModal()">+ Add Transaction</button>
               </div>
             </div>
+
+            <!-- Mobile Transaction List (Screen width <= 640px) -->
+            <div id="recent-transactions-mobile" class="dashboard-tx-mobile-list"></div>
           </div>
 
           <!-- Budgets & Savings Goals -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <div class="dashboard-side-column">
             <!-- Monthly Budgets Card -->
-            <div class="card">
+            <div class="card dashboard-budget-card">
               <div class="card-header">
                 <div>
                   <h2 class="card-title">Monthly Budgets</h2>
@@ -166,7 +169,7 @@
             </div>
 
             <!-- Savings Goals Card -->
-            <div class="card">
+            <div class="card dashboard-goals-card">
               <div class="card-header">
                 <div>
                   <h2 class="card-title">Savings Goals</h2>
@@ -180,7 +183,7 @@
         </div>
 
         <!-- Upcoming & Scheduled Section: Reminders & Recurring -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;" class="charts-grid">
+        <div class="dashboard-dual-grid charts-grid">
           <!-- Upcoming Reminders Card -->
           <div class="card">
             <div class="card-header">
@@ -278,6 +281,6 @@
   <script src="../js/api.js"></script>
   <script src="../js/notifications.js"></script>
   <script src="../js/auth.js"></script>
-  <script src="../js/dashboard.js"></script>
+  <script src="../js/dashboard.js?v=1.0.6"></script>
 </body>
 </html>

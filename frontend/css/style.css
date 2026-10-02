@@ -371,6 +371,9 @@ button, input, select, textarea {
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .card:hover {

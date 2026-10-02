@@ -17,7 +17,9 @@
    Medium Desktops & Tablets Landscape (max-width: 1024px)
    ---------------------------------------------------------- */
 @media (max-width: 1024px) {
-  .charts-grid {
+  .charts-grid,
+  .dashboard-split-grid,
+  .dashboard-dual-grid {
     grid-template-columns: 1fr !important;
   }
 
@@ -313,6 +315,59 @@
     padding: 0.75rem;
   }
 
+  /* Dashboard: Switch Recent Transactions table to mobile cards and stack header/side elements */
+  .dashboard-tx-table-wrap {
+    display: none !important;
+  }
+
+  .dashboard-tx-mobile-list {
+    display: flex !important;
+  }
+
+  .dashboard-split-grid,
+  .dashboard-dual-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .dashboard-side-column {
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 1.25rem !important;
+  }
+
+  .dashboard-recent-tx-card,
+  .dashboard-budget-card,
+  .dashboard-goals-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .dashboard-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 0.5rem !important;
+  }
+
+  .dashboard-header-actions .btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    font-size: 0.8125rem !important;
+    padding: 0.5rem 0.5rem !important;
+    white-space: nowrap !important;
+  }
+
+
   /* Tables Mobile Touch-Scroll (for pages still using tables) */
   .table-container, .table-responsive {
     width: 100%;
@@ -544,6 +599,15 @@
     gap: 0.75rem;
     align-items: center;
   }
+
+  .dashboard-header-actions {
+    width: 100% !important;
+  }
+
+  .dashboard-header-actions .btn {
+    padding: 0.45rem 0.5rem !important;
+    font-size: 0.78125rem !important;
+  }
 }
 
 /* ----------------------------------------------------------
@@ -592,6 +656,19 @@
     height: 34px !important;
     min-width: 34px !important;
     min-height: 34px !important;
+  }
+
+  .dashboard-header-actions {
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+  }
+
+  .dashboard-header-actions .btn {
+    width: 100% !important;
+  }
+
+  .dash-tx-row {
+    padding: 0.625rem 0.65rem !important;
   }
 }
 
@@ -730,6 +807,14 @@
   }
 
   .transactions-mobile-list {
+    display: none !important;
+  }
+
+  .dashboard-tx-table-wrap {
+    display: block !important;
+  }
+
+  .dashboard-tx-mobile-list {
     display: none !important;
   }
 
