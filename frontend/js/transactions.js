@@ -17,6 +17,7 @@ let currentFilters = {
 let categoriesList = [];
 let editingTransactionId = null;
 let parsedStatementData = null;
+let currentUploadedFilename = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
   Auth.initAppShell('transactions');
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFilters();
   initModals();
   initImportStatementModal();
+  initImportHistoryListeners();
   await loadTransactions();
   checkUrlActions();
 });
@@ -615,7 +617,10 @@ async function handleStatementUpload(file) {
   if (dropzone) dropzone.style.display = 'none';
   if (uploadingState) uploadingState.style.display = 'block';
 
+  const fileInput = document.getElementById('statement-file-input');
+
   try {
+    currentUploadedFilename = file.name;
     const formData = new FormData();
     formData.append('file', file);
 
@@ -628,6 +633,8 @@ async function handleStatementUpload(file) {
     showToast(err.message, 'error');
     if (dropzone) dropzone.style.display = 'block';
     if (uploadingState) uploadingState.style.display = 'none';
+  } finally {
+    if (fileInput) fileInput.value = '';
   }
 }
 
@@ -679,9 +686,8 @@ function renderImportPreview(data) {
                    id="prev-check-${idx}"
                    data-idx="${idx}"
                    ${it.is_selected ? 'checked' : ''}
-                   ${it.is_duplicate ? 'disabled' : ''}
                    onchange="onPreviewItemCheckChange(${idx}, this.checked)"
-                   style="cursor: ${it.is_duplicate ? 'not-allowed' : 'pointer'}; width: 16px; height: 16px;">
+                   style="cursor: pointer; width: 16px; height: 16px;">
           </td>
           <td style="white-space: nowrap; font-size: 0.8125rem;">
             ${formatDate(it.transaction_date)}
@@ -701,7 +707,6 @@ function renderImportPreview(data) {
             <select class="form-select"
                     id="prev-cat-${idx}"
                     style="padding: 0.35rem 0.6rem; font-size: 0.8125rem;"
-                    ${it.is_duplicate ? 'disabled' : ''}
                     onchange="onPreviewCategoryChange(${idx}, this.value)">
               ${catOptions}
             </select>
@@ -741,9 +746,8 @@ function renderImportPreview(data) {
                      id="prev-check-m-${idx}"
                      data-idx="${idx}"
                      ${it.is_selected ? 'checked' : ''}
-                     ${it.is_duplicate ? 'disabled' : ''}
                      onchange="onPreviewItemCheckChange(${idx}, this.checked)"
-                     style="cursor: ${it.is_duplicate ? 'not-allowed' : 'pointer'}; width: 18px; height: 18px; flex-shrink: 0;">
+                     style="cursor: pointer; width: 18px; height: 18px; flex-shrink: 0;">
               <div style="min-width: 0;">
                 <div style="font-weight: 700; font-size: 0.875rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   ${escapeHtml(it.description)}
@@ -766,7 +770,6 @@ function renderImportPreview(data) {
             <select class="form-select"
                     id="prev-cat-m-${idx}"
                     style="max-width: 220px; font-size: 0.8125rem; padding: 0.35rem 0.5rem;"
-                    ${it.is_duplicate ? 'disabled' : ''}
                     onchange="onPreviewCategoryChange(${idx}, this.value)">
               ${catOptions}
             </select>
@@ -815,14 +818,11 @@ function toggleAllTransactions(select) {
   if (!parsedStatementData || !parsedStatementData.items) return;
 
   parsedStatementData.items.forEach((it, idx) => {
-    // Duplicates are never selected
-    if (!it.is_duplicate) {
-      it.is_selected = select;
-      const dCheck = document.getElementById(`prev-check-${idx}`);
-      const mCheck = document.getElementById(`prev-check-m-${idx}`);
-      if (dCheck) dCheck.checked = select;
-      if (mCheck) mCheck.checked = select;
-    }
+    it.is_selected = select;
+    const dCheck = document.getElementById(`prev-check-${idx}`);
+    const mCheck = document.getElementById(`prev-check-m-${idx}`);
+    if (dCheck) dCheck.checked = select;
+    if (mCheck) mCheck.checked = select;
   });
 
   const master = document.getElementById('prev-master-checkbox');
@@ -833,7 +833,7 @@ function toggleAllTransactions(select) {
 
 function updateSelectedCount() {
   if (!parsedStatementData || !parsedStatementData.items) return;
-  const selectedCount = parsedStatementData.items.filter(it => it.is_selected && !it.is_duplicate).length;
+  const selectedCount = parsedStatementData.items.filter(it => it.is_selected).length;
 
   const countEl = document.getElementById('prev-selected-count');
   const btnCount = document.getElementById('import-btn-count');
@@ -850,13 +850,21 @@ function updateSelectedCount() {
 async function confirmImportTransactions() {
   if (!parsedStatementData || !parsedStatementData.items) return;
 
-  const toImport = parsedStatementData.items.filter(it => it.is_selected && !it.is_duplicate);
+  const toImport = parsedStatementData.items.filter(it => it.is_selected);
   if (toImport.length === 0) {
     showToast('No transactions selected for import.', 'warning');
     return;
   }
 
-  if (!confirm(`You are about to import ${toImport.length} transactions into ExpenseFlow. Proceed?`)) {
+  const dupSelected = toImport.filter(it => it.is_duplicate).length;
+  let confirmMsg = `You are about to import ${toImport.length} transaction${toImport.length > 1 ? 's' : ''} into ExpenseFlow.`;
+  if (dupSelected > 0) {
+    confirmMsg += ` (${dupSelected} marked as already imported will be re-verified). Proceed?`;
+  } else {
+    confirmMsg += ' Proceed?';
+  }
+
+  if (!confirm(confirmMsg)) {
     return;
   }
 
@@ -878,7 +886,9 @@ async function confirmImportTransactions() {
         external_transaction_id: it.external_transaction_id,
         external_utr: it.external_utr,
         source: 'phonepe'
-      }))
+      })),
+      filename: currentUploadedFilename || 'PhonePe_Statement.pdf',
+      total_found: parsedStatementData ? parsedStatementData.total_count : toImport.length
     };
 
     const res = await ApiClient.post('/statements/import-phonepe', payload);
@@ -906,4 +916,105 @@ function escapeHtml(str) {
     "'": '&#39;',
     '"': '&quot;'
   }[tag] || tag));
+}
+
+function initImportHistoryListeners() {
+  const openBtn = document.getElementById('open-import-history-btn');
+  const closeBtn = document.getElementById('close-import-history-btn');
+  const closeActionBtn = document.getElementById('import-history-close-action');
+
+  if (openBtn) {
+    openBtn.addEventListener('click', openImportHistoryModal);
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeImportHistoryModal);
+  }
+  if (closeActionBtn) {
+    closeActionBtn.addEventListener('click', closeImportHistoryModal);
+  }
+}
+
+async function openImportHistoryModal() {
+  const modal = document.getElementById('import-history-modal');
+  const body = document.getElementById('import-history-body');
+  if (!modal || !body) return;
+
+  modal.classList.add('active');
+  body.innerHTML = `
+    <div class="loading-state" style="padding: 2.5rem; text-align: center;">
+      <div class="spinner" style="margin: 0 auto 1rem;"></div>
+      <p style="color: var(--text-muted); font-size: 0.875rem;">Loading statement import history...</p>
+    </div>
+  `;
+
+  try {
+    const history = await ApiClient.get('/statements/history');
+    if (!history || history.length === 0) {
+      body.innerHTML = `
+        <div class="empty-state" style="padding: 2.5rem; text-align: center;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted); margin-bottom: 0.75rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <h4 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">No Import History Yet</h4>
+          <p style="font-size: 0.825rem; color: var(--text-muted);">When you import PhonePe statement PDFs, a record of each statement import and duplicate count will be saved here.</p>
+        </div>
+      `;
+      return;
+    }
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+        ${history.map(item => {
+          const importDate = new Date(item.imported_at);
+          const formattedImportDate = !isNaN(importDate.getTime())
+            ? importDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+            : item.imported_at;
+
+          return `
+            <div class="card" style="padding: 1rem; margin-bottom: 0; border: 1px solid var(--border-subtle); background: var(--bg-surface);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.65rem;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-weight: 800; font-size: 1rem; color: var(--text-main);">${escapeHtml(item.statement_period || 'PhonePe Statement')}</span>
+                    <span class="source-badge source-badge-phonepe" style="font-size: 0.7rem;">📱 PhonePe</span>
+                  </div>
+                  <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 0.2rem;">
+                    Imported: ${escapeHtml(formattedImportDate)} • File: <span style="font-family: monospace;">${escapeHtml(item.filename || 'statement.pdf')}</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-weight: 700;">Completed</span>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.5rem; background: var(--bg-subtle); padding: 0.65rem; border-radius: var(--radius-md);">
+                <div style="text-align: center;">
+                  <div style="font-size: 0.675rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Found</div>
+                  <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main);">${item.total_found}</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="font-size: 0.675rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">New Imported</div>
+                  <div style="font-weight: 800; font-size: 0.95rem; color: var(--success);">+${item.total_new}</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="font-size: 0.675rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Duplicates</div>
+                  <div style="font-weight: 800; font-size: 0.95rem; color: #D97706;">${item.total_duplicates}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+  } catch (err) {
+    body.innerHTML = `
+      <div style="padding: 2rem; text-align: center; color: var(--danger);">
+        <p>Failed to load import history: ${escapeHtml(err.message)}</p>
+      </div>
+    `;
+  }
+}
+
+function closeImportHistoryModal() {
+  const modal = document.getElementById('import-history-modal');
+  if (modal) modal.classList.remove('active');
 }

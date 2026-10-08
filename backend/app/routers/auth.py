@@ -5,7 +5,7 @@ from app.core.dependencies import get_current_user
 from app.core.security import create_access_token
 from app.models.user import User
 from app.schemas.auth import LoginRequest, Token
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, PasswordChangeRequest
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, PasswordChangeRequest, DeleteFinancialDataRequest
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -96,3 +96,16 @@ def logout(current_user: User = Depends(get_current_user)):
     Token invalidation is finalized on the client by deleting the stored token.
     """
     return {"message": "Successfully logged out.", "status": "success"}
+
+
+@router.delete("/financial-data")
+def delete_auth_financial_data(
+    req: DeleteFinancialDataRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Convenience alias for deleting financial data scoped to authenticated user.
+    """
+    from app.routers.users import delete_financial_data as delete_fn
+    return delete_fn(req=req, current_user=current_user, db=db)

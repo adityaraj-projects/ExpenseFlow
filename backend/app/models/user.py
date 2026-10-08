@@ -22,6 +22,7 @@ class User(Base):
     transactions: Mapped[List["Transaction"]] = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     budgets: Mapped[List["Budget"]] = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
     savings_goals: Mapped[List["SavingsGoal"]] = relationship("SavingsGoal", back_populates="user", cascade="all, delete-orphan")
+    statement_imports: Mapped[List["StatementImport"]] = relationship("StatementImport", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email='{self.email}' name='{self.full_name}'>"

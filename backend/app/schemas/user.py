@@ -45,3 +45,25 @@ class UserResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DeleteFinancialDataRequest(BaseModel):
+    confirmation: str = Field(..., description="Must type 'DELETE' to confirm")
+
+    @field_validator("confirmation")
+    @classmethod
+    def must_be_delete(cls, v: str) -> str:
+        if v.strip() != "DELETE":
+            raise ValueError("Confirmation must be exactly 'DELETE'")
+        return v.strip()
+
+
+class DeleteFinancialDataResponse(BaseModel):
+    message: str
+    deleted_transactions: int
+    deleted_budgets: int
+    deleted_goals: int
+    deleted_reminders: int
+    deleted_recurring: int
+    deleted_notifications: int
+    deleted_statement_imports: int

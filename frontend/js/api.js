@@ -26,7 +26,7 @@ function getApiBaseUrl() {
     const isDevClientPort = ['5500', '3000', '5173', '8080'].includes(port);
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     if (isDevClientPort && isLocalhost) {
-      return localStorage.getItem('expenseflow_api_url') || 'https://expenseflow-3zl0.onrender.com/api';
+      return localStorage.getItem('expenseflow_api_url') || 'http://127.0.0.1:8000/api';
     }
     if (isLocalhost && port === '8000') {
       return '/api';
@@ -85,10 +85,16 @@ class ApiClient {
         return null;
       }
 
-      const data = await response.json();
+      let data;
+      const text = await response.text();
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (jsonErr) {
+        data = { detail: text || response.statusText || 'Server communication error.' };
+      }
 
       if (!response.ok) {
-        const errorMsg = data.message || data.detail || (Array.isArray(data.errors) ? data.errors[0] : 'An unexpected error occurred.');
+        const errorMsg = data.message || data.detail || (Array.isArray(data.errors) ? data.errors[0] : (response.statusText || 'An unexpected error occurred.'));
         throw new Error(errorMsg);
       }
 
@@ -134,8 +140,12 @@ class ApiClient {
     return this.request(endpoint, options);
   }
 
-  static delete(endpoint) {
-    return this.request(endpoint, { method: 'DELETE' });
+  static delete(endpoint, body) {
+    const options = { method: 'DELETE' };
+    if (body !== undefined && body !== null) {
+      options.body = JSON.stringify(body);
+    }
+    return this.request(endpoint, options);
   }
 
   static async postFormData(endpoint, formData) {
@@ -160,9 +170,16 @@ class ApiClient {
         throw new Error('Session expired. Please log in again.');
       }
 
-      const data = await response.json();
+      let data;
+      const text = await response.text();
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (jsonErr) {
+        data = { detail: text || response.statusText || 'Server communication error.' };
+      }
+
       if (!response.ok) {
-        const errorMsg = data.message || data.detail || (Array.isArray(data.errors) ? data.errors[0] : 'An unexpected error occurred.');
+        const errorMsg = data.message || data.detail || (Array.isArray(data.errors) ? data.errors[0] : (response.statusText || 'An unexpected error occurred.'));
         throw new Error(errorMsg);
       }
       return data;

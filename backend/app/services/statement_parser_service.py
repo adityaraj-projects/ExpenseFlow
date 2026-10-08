@@ -1,6 +1,7 @@
 import re
 import io
-from datetime import datetime
+import logging
+from datetime import datetime, date as dt_date
 from decimal import Decimal
 from typing import List, Dict, Any, Optional, Tuple
 import PyPDF2
@@ -9,6 +10,39 @@ from sqlalchemy import or_, and_
 from fastapi import HTTPException, status
 from app.models.transaction import Transaction, TransactionType
 from app.models.category import Category, CategoryType
+from app.models.statement_import import StatementImport
+
+logger = logging.getLogger(__name__)
+
+
+def parse_phonepe_date(date_str: str) -> str:
+    """Normalize various PhonePe date formats into standard YYYY-MM-DD string."""
+    cleaned = date_str.strip()
+    cleaned = re.sub(r'\bSept\b', 'Sep', cleaned, flags=re.IGNORECASE)
+    formats = [
+        '%b %d, %Y', '%b %d %Y', '%B %d, %Y', '%B %d %Y',
+        '%d %b, %Y', '%d %b %Y', '%d %B, %Y', '%d %B %Y',
+        '%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y'
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(cleaned, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+    return cleaned
+
+
+def parse_phonepe_time(time_str: str) -> str:
+    """Normalize 12-hour or 24-hour time strings into standard hh:mm AM/PM format."""
+    cleaned = time_str.strip()
+    formats = ['%I:%M %p', '%I:%M%p', '%H:%M']
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(cleaned.upper(), fmt)
+            return dt.strftime('%I:%M %p')
+        except ValueError:
+            pass
+    return cleaned
 
 
 KEYWORD_CATEGORY_MAP = {
@@ -76,6 +110,8 @@ KEYWORD_CATEGORY_MAP = {
     "vi": "Bills & Utilities",
     "telecom": "Bills & Utilities",
     "recharge": "Bills & Utilities",
+    "recharged": "Bills & Utilities",
+    "autopay": "Bills & Utilities",
     "electric": "Bills & Utilities",
     "electricity": "Bills & Utilities",
     "broadband": "Bills & Utilities",
@@ -155,27 +191,32 @@ class StatementParserService:
     def validate_pdf_bytes(pdf_bytes: bytes, filename: str) -> None:
         """Validate file size, extension, and PDF header magic bytes."""
         if not filename.lower().endswith(".pdf"):
+            logger.warning("Upload validation failed: file %s is not a PDF", filename)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only PDF files (.pdf) are supported. Please upload a valid PhonePe statement."
             )
         if len(pdf_bytes) == 0:
+            logger.warning("Upload validation failed: file %s is empty", filename)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="The uploaded PDF file is empty."
             )
         # Limit to 15MB
         if len(pdf_bytes) > 15 * 1024 * 1024:
+            logger.warning("Upload validation failed: file %s exceeds 15MB (%d bytes)", filename, len(pdf_bytes))
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File size exceeds the 15MB limit. Please upload a smaller PDF statement."
             )
         # Magic bytes check
         if not pdf_bytes.startswith(b"%PDF"):
+            logger.warning("Upload validation failed: file %s lacks %PDF magic header", filename)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="The uploaded file does not appear to be a valid PDF document."
             )
+        logger.info("PDF file %s (%d bytes) passed basic validation", filename, len(pdf_bytes))
 
     @staticmethod
     def extract_phonepe_raw_transactions(pdf_bytes: bytes) -> List[Dict[str, Any]]:
@@ -194,76 +235,85 @@ class StatementParserService:
             full_text = ""
             for i, page in enumerate(reader.pages):
                 page_text = page.extract_text() or ""
-                full_text += f"\n--- PAGE {i+1} ---\n" + page_text
+                full_text += f"\n" + page_text
         except HTTPException:
             raise
         except Exception as e:
+            logger.error("Failed to read PDF pages: %s", str(e))
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Could not read PDF contents. Please ensure the file is not corrupted."
             )
 
-        # Regex matching PhonePe statement transaction blocks
-        # Structure in PhonePe PDF:
-        # Date (e.g. Oct 02, 2026 or Sept 10, 2026)
-        # Time (e.g. 05:07 pm)
-        # Type (DEBIT | CREDIT)
-        # ₹
-        # Amount (e.g. 30 or 1,299.50)
-        # Action + Party (e.g. Paid to R A ENTERPRISE or Received from KIRTI BAIRAGI)
-        # Transaction ID T...
-        # UTR No. ... (optional)
-        date_regex = re.compile(
-            r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+\d{4})\s*\n'
+        logger.info("Extracted %d characters of raw text from PDF", len(full_text))
+
+        # Pre-clean known PhonePe statement repeating headers, footers, and table headings
+        # so transactions crossing page boundaries stitch seamlessly together
+        clean_text = re.sub(r'Page \d+ of \d+\s*\n[^\n]*\nhttps://support\.phonepe\.com[^\n]*', '', full_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'Transaction Statement for [^\n]+', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*,?\s+\d{4}\s*-\s*\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*,?\s+\d{4}', '', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'Date\s*\n\s*Transaction Details\s*\n\s*Type\s*\n\s*Amount', '', clean_text, flags=re.IGNORECASE)
+
+        # Regex matching PhonePe statement transaction blocks:
+        # 1. Date: e.g. "Oct 02, 2026" or "Sept 30, 2026" or "02 Sept, 2026"
+        # 2. Time: e.g. "05:07 pm" or "10:30 am"
+        # 3. Type: DEBIT or CREDIT
+        # 4. Currency: ₹
+        # 5. Amount: e.g. 30 or 1,299.50 or 40,000
+        # 6. Description / Party block (matches across lines and emojis until Transaction ID)
+        # 7. Transaction ID (starts with T, OM, NB, OLEX, etc.)
+        # 8. Optional UTR No.
+        tx_pattern = re.compile(
+            r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*,?\s+\d{4})\s*\n'
             r'(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM))\s*\n'
             r'(DEBIT|CREDIT)\s*\n'
             r'₹\s*\n'
             r'([\d,]+(?:\.\d{1,2})?)\s*\n'
-            r'((?:Paid to|Received from|Payment to|Refund from|Transfer to|Money sent to|Paid by)[^\n]+)\s*\n'
+            r'([\s\S]*?)\s*\n'
             r'Transaction ID\s+([A-Za-z0-9]+)'
             r'(?:\s*\nUTR No\.\s*([A-Za-z0-9]+))?',
             re.IGNORECASE
         )
 
+        matches = list(tx_pattern.finditer(clean_text))
+        logger.info("Found %d transaction pattern matches in statement text", len(matches))
+
         extracted: List[Dict[str, Any]] = []
-        for match in date_regex.finditer(full_text):
+        for match in matches:
             raw_date = match.group(1).strip()
             raw_time = match.group(2).strip()
             tx_type_raw = match.group(3).strip().upper()
             amount_raw = match.group(4).strip().replace(',', '')
-            desc_line = match.group(5).strip()
+            desc_block = match.group(5).strip()
             tx_id = match.group(6).strip()
             utr = match.group(7).strip() if match.group(7) else None
 
-            # Clean party name
+            # Collapse multiline party block into clean single-line description
+            desc_cleaned = ' '.join(desc_block.split()).strip()
+
+            # Clean action prefix and party name
             party_match = re.match(
-                r'^(Paid to|Received from|Payment to|Refund from|Transfer to|Money sent to|Paid by)\s+(.*)',
-                desc_line,
+                r'^(Paid to|Received from|Payment to|Refund from|Transfer to|Money sent to|Paid by|Sent to|AutoPay activation|Mobile recharged|Bill payment to)\s*(.*)',
+                desc_cleaned,
                 re.IGNORECASE
             )
-            action_prefix = party_match.group(1) if party_match else ""
-            party_name = party_match.group(2).strip() if party_match else desc_line
-            party_name = re.sub(r'[\s]+', ' ', party_name).strip()
+            if party_match:
+                action_prefix = party_match.group(1).strip()
+                party_name = party_match.group(2).strip() or action_prefix
+            else:
+                action_prefix = "Paid to" if tx_type_raw == "DEBIT" else "Received from"
+                party_name = desc_cleaned
 
-            # Date normalization (handles Sept -> Sep, full month names, etc.)
-            norm_date_str = re.sub(r'\bSept\b', 'Sep', raw_date, flags=re.IGNORECASE)
-            try:
-                parsed_date = datetime.strptime(norm_date_str, "%b %d, %Y").date()
-                formatted_date = str(parsed_date)
-            except Exception:
-                formatted_date = norm_date_str
+            # Standardized date YYYY-MM-DD
+            formatted_date = parse_phonepe_date(raw_date)
 
-            # Time normalization
-            try:
-                dt_time = datetime.strptime(raw_time.upper(), "%I:%M %p")
-                formatted_time = dt_time.strftime("%I:%M %p")
-            except Exception:
-                formatted_time = raw_time
+            # Standardized time hh:mm AM/PM
+            formatted_time = parse_phonepe_time(raw_time)
 
             tx_type = "expense" if tx_type_raw == "DEBIT" else "income"
             amount = Decimal(amount_raw)
 
-            full_desc = f"{action_prefix} {party_name}".strip() if action_prefix else party_name
+            full_desc = desc_cleaned if desc_cleaned else (f"{action_prefix} {party_name}".strip() if action_prefix else party_name)
 
             extracted.append({
                 "raw_date": raw_date,
@@ -279,6 +329,7 @@ class StatementParserService:
                 "source": "phonepe"
             })
 
+        logger.info("Successfully extracted %d raw PhonePe transactions", len(extracted))
         return extracted
 
     @staticmethod
@@ -412,6 +463,7 @@ class StatementParserService:
 
         # Also track within the same statement to detect any internal repeats
         seen_in_statement_tx_ids = set()
+        seen_in_statement_utrs = set()
         seen_in_statement_fingerprints = set()
 
         for idx, tx in enumerate(raw_txs):
@@ -426,23 +478,28 @@ class StatementParserService:
             fg = make_transaction_fingerprint(user_id, tx_date_str, tx_time_str, amt, tx_type, desc)
 
             # Check duplicate matching priority:
-            # 1. Transaction ID
-            # 2. UTR number
-            # 3. Deterministic transaction fingerprint
+            # 1. Transaction ID (if present)
+            # 2. UTR number (if present and tx_id missing)
+            # 3. Deterministic transaction fingerprint (only when external IDs are not present)
             is_dup = False
             dup_reason = ""
-            if tx_id and (tx_id in existing_tx_ids or tx_id in seen_in_statement_tx_ids):
-                is_dup = True
-                dup_reason = "Transaction ID already exists in your account"
-            elif utr and (utr in existing_utrs):
-                is_dup = True
-                dup_reason = "UTR number already exists in your account"
-            elif fg in existing_fingerprints or fg in seen_in_statement_fingerprints:
-                is_dup = True
-                dup_reason = "Matching transaction already recorded"
+            if tx_id:
+                if tx_id in existing_tx_ids or tx_id in seen_in_statement_tx_ids:
+                    is_dup = True
+                    dup_reason = "Transaction ID already exists in your account"
+            elif utr:
+                if utr in existing_utrs or utr in seen_in_statement_utrs:
+                    is_dup = True
+                    dup_reason = "UTR number already exists in your account"
+            else:
+                if fg in existing_fingerprints or fg in seen_in_statement_fingerprints:
+                    is_dup = True
+                    dup_reason = "Matching transaction already recorded"
 
             if tx_id:
                 seen_in_statement_tx_ids.add(tx_id)
+            if utr:
+                seen_in_statement_utrs.add(utr)
             seen_in_statement_fingerprints.add(fg)
 
             if is_dup:
@@ -482,6 +539,11 @@ class StatementParserService:
                 "is_selected": is_selected
             })
 
+        logger.info(
+            "Statement preview parsed for user_id=%d: total=%d, new=%d, duplicates=%d",
+            user_id, len(raw_txs), new_count, duplicate_count
+        )
+
         return {
             "statement_format": "PhonePe PDF Statement",
             "total_count": len(raw_txs),
@@ -496,17 +558,42 @@ class StatementParserService:
         cls,
         db: Session,
         user_id: int,
-        transactions_to_import: List[Dict[str, Any]]
+        transactions_to_import: List[Dict[str, Any]],
+        filename: Optional[str] = None,
+        statement_period: Optional[str] = None,
+        total_found: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Safely inserts user-selected statement transactions into the transactions table.
         Re-verifies duplicate uniqueness scoped to user_id.
+        Records an import history entry for full auditability.
         """
         if not transactions_to_import:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No transactions were selected for import."
             )
+
+        # Derive period if not passed
+        resolved_period = statement_period
+        if not resolved_period:
+            dates = []
+            for item in transactions_to_import:
+                d = item.get("transaction_date")
+                if isinstance(d, str):
+                    try:
+                        dates.append(datetime.strptime(parse_phonepe_date(d), "%Y-%m-%d").date())
+                    except Exception:
+                        pass
+                elif isinstance(d, dt_date):
+                    dates.append(d)
+            if dates:
+                dates.sort()
+                min_m = dates[0].strftime("%B %Y")
+                max_m = dates[-1].strftime("%B %Y")
+                resolved_period = min_m if min_m == max_m else f"{dates[0].strftime('%b %Y')} – {dates[-1].strftime('%b %Y')}"
+            else:
+                resolved_period = datetime.now().strftime("%B %Y")
 
         # Refresh existing records to prevent race duplicates
         existing_txs = db.query(
@@ -560,8 +647,22 @@ class StatementParserService:
 
             fg = make_transaction_fingerprint(user_id, str(tx_date_raw), tx_time_raw, amt, tx_type_str, desc)
 
-            # Deduplication check
-            if (tx_id and tx_id in existing_tx_ids) or (utr and utr in existing_utrs) or (fg in existing_fingerprints):
+            # Deduplication check matching priority:
+            # 1. Transaction ID (if present)
+            # 2. UTR number (if present and tx_id missing)
+            # 3. Deterministic transaction fingerprint (only when external IDs are missing)
+            is_dup = False
+            if tx_id:
+                if tx_id in existing_tx_ids:
+                    is_dup = True
+            elif utr:
+                if utr in existing_utrs:
+                    is_dup = True
+            else:
+                if fg in existing_fingerprints:
+                    is_dup = True
+
+            if is_dup:
                 skipped_count += 1
                 continue
 
@@ -570,11 +671,19 @@ class StatementParserService:
             if not cat_id or cat_id not in user_categories:
                 cat_id = fallback_expense if tx_type_str == "expense" else fallback_income
 
-            # Parse date object
+            # Parse date safely (ensuring no ValueError)
             if isinstance(tx_date_raw, str):
-                parsed_date = datetime.strptime(tx_date_raw, "%Y-%m-%d").date()
-            else:
+                norm_d = parse_phonepe_date(tx_date_raw)
+                try:
+                    parsed_date = datetime.strptime(norm_d, "%Y-%m-%d").date()
+                except Exception:
+                    parsed_date = datetime.now().date()
+            elif isinstance(tx_date_raw, dt_date):
                 parsed_date = tx_date_raw
+            else:
+                parsed_date = datetime.now().date()
+
+            norm_time = parse_phonepe_time(tx_time_raw) if tx_time_raw else None
 
             new_tx = Transaction(
                 user_id=user_id,
@@ -583,7 +692,7 @@ class StatementParserService:
                 amount=amt,
                 description=desc,
                 transaction_date=parsed_date,
-                transaction_time=tx_time_raw,
+                transaction_time=norm_time,
                 source="phonepe",
                 external_transaction_id=tx_id or None,
                 external_utr=utr or None,
@@ -607,8 +716,32 @@ class StatementParserService:
             except Exception:
                 pass
 
+        # Record StatementImport history entry
+        calc_total_found = total_found if total_found is not None else (len(imported_records) + skipped_count)
+        history_entry = StatementImport(
+            user_id=user_id,
+            source="phonepe",
+            statement_period=resolved_period,
+            filename=filename or "PhonePe_Statement.pdf",
+            total_found=calc_total_found,
+            total_new=len(imported_records),
+            total_duplicates=skipped_count,
+            total_failed=0,
+            status="completed",
+            error_message=None
+        )
+        db.add(history_entry)
+        db.commit()
+
+        logger.info(
+            "Statement import completed for user_id=%d: %d inserted, %d duplicates skipped, import_id=%d",
+            user_id, len(imported_records), skipped_count, history_entry.id
+        )
+
         return {
             "imported_count": len(imported_records),
             "skipped_count": skipped_count,
+            "import_id": history_entry.id,
+            "statement_period": resolved_period,
             "message": f"{len(imported_records)} transactions imported successfully. {skipped_count} duplicate transactions skipped."
         }

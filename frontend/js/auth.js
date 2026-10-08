@@ -87,6 +87,10 @@ const Auth = {
             ${getSvgIcon('transactions')}
             <span>Transactions</span>
           </a>
+          <a href="/pages/calendar.html" class="nav-item ${activePage === 'calendar' ? 'active' : ''}">
+            ${getSvgIcon('calendar')}
+            <span>Calendar</span>
+          </a>
           <a href="/pages/budgets.html" class="nav-item ${activePage === 'budgets' ? 'active' : ''}">
             ${getSvgIcon('budgets')}
             <span>Budgets</span>
@@ -150,6 +154,7 @@ const Auth = {
       const desktopTitles = {
         dashboard: 'Dashboard',
         transactions: 'Transactions',
+        calendar: 'Daily Finance Calendar',
         budgets: 'Monthly Budgets',
         reminders: 'Payment Reminders',
         recurring: 'Recurring Transactions',
@@ -163,6 +168,7 @@ const Auth = {
       const mobileTitles = {
         dashboard: 'Dashboard',
         transactions: 'Transactions',
+        calendar: 'Calendar',
         budgets: 'Budgets',
         reminders: 'Reminders',
         recurring: 'Recurring',
@@ -255,7 +261,7 @@ const Auth = {
         ${getSvgIcon('goals')}
         <span>Goals</span>
       </a>
-      <button type="button" class="mobile-nav-link mobile-nav-more-btn ${['categories', 'reports', 'reminders', 'recurring', 'profile', 'settings'].includes(activePage) ? 'active' : ''}" id="mobile-more-btn" aria-label="Open more menu">
+      <button type="button" class="mobile-nav-link mobile-nav-more-btn ${['calendar', 'categories', 'reports', 'reminders', 'recurring', 'profile', 'settings'].includes(activePage) ? 'active' : ''}" id="mobile-more-btn" aria-label="Open more menu">
         ${getSvgIcon('more')}
         <span>More</span>
       </button>

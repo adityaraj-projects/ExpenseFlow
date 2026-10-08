@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar & Daily Finance — ExpenseFlow</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="/icons/favicon.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/style.css?v=1.0.5">
+  <link rel="stylesheet" href="../css/dashboard.css?v=1.0.5">
+  <link rel="stylesheet" href="../css/responsive.css?v=1.0.5">
+  <style>
+    /* Calendar Page Specific Styles */
+    .calendar-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .calendar-container {
+        grid-template-columns: 1.5fr 1fr;
+        align-items: start;
+      }
+    }
+
+    .calendar-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      padding: 1.25rem;
+    }
+
+    .calendar-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .calendar-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .calendar-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .calendar-nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .calendar-actions-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .calendar-month-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+    }
+
+    .cal-kpi-item {
+      text-align: center;
+    }
+
+    .cal-kpi-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
+
+    .cal-kpi-value {
+      font-size: 1rem;
+      font-weight: 800;
+      margin-top: 0.15rem;
+    }
+
+    .calendar-filters-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      width: 100%;
+    }
+
+    .calendar-day-header {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0.4rem 0;
+      text-transform: uppercase;
+    }
+
+    .calendar-cell {
+      aspect-ratio: 1;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0.35rem 0.2rem;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid transparent;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .calendar-cell:hover:not(.empty) {
+      background: var(--bg-subtle);
+      border-color: var(--border-subtle);
+    }
+
+    .calendar-cell.empty {
+      background: transparent;
+      cursor: default;
+      opacity: 0.25;
+    }
+
+    .calendar-cell.today {
+      border-color: var(--primary);
+    }
+
+    .calendar-cell.selected {
+      background: var(--primary-light) !important;
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 2px var(--primary-glow);
+    }
+
+    [data-theme="dark"] .calendar-cell.selected {
+      background: rgba(79, 70, 229, 0.25) !important;
+      border-color: #818CF8 !important;
+    }
+
+    .cal-date-num {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .calendar-cell.selected .cal-date-num {
+      color: var(--primary);
+    }
+
+    [data-theme="dark"] .calendar-cell.selected .cal-date-num {
+      color: #A5B4FC;
+    }
+
+    .cal-indicators {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      margin-top: auto;
+    }
+
+    .cal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .cal-dot-income {
+      background-color: var(--success);
+    }
+
+    .cal-dot-expense {
+      background-color: var(--danger);
+    }
+
+    .cal-dot-both {
+      background: linear-gradient(135deg, var(--success) 50%, var(--danger) 50%);
+    }
+
+    .calendar-legend {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* Selected Day Detail Card */
+    .day-detail-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+    }
+
+    .day-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .day-detail-title {
+      font-size: 1.125rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .day-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .day-stat-card {
+      background: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .day-stat-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .day-stat-amount {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-top: 0.2rem;
+    }
+
+    .daily-tx-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .daily-tx-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.75rem 0.85rem;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      transition: transform 0.1s ease;
+    }
+
+    .daily-tx-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .daily-tx-left {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .daily-tx-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .daily-tx-desc {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0.15rem 0;
+    }
+
+    .daily-tx-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .daily-tx-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .daily-tx-amount {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <aside class="app-sidebar" id="app-sidebar"></aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="app-main">
+      <header class="app-header" id="app-header"></header>
+
+      <main class="page-content">
+        <!-- Top Toolbar & Navigation -->
+        <div class="card" style="margin-bottom: 1.25rem; padding: 1.25rem;">
+          <div class="calendar-nav-bar" style="margin-bottom: 0;">
+            <div class="calendar-title-wrap">
+              <h2 id="calendar-month-title" class="calendar-title">October 2026</h2>
+              <div class="calendar-nav-controls">
+                <button type="button" class="btn btn-secondary btn-sm" id="prev-month-btn" title="Previous Month" aria-label="Previous Month">&larr; Prev</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="today-btn" title="Jump to Current Month">Today</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="next-month-btn" title="Next Month" aria-label="Next Month">Next &rarr;</button>
+              </div>
+            </div>
+
+            <!-- Jump to Month/Year Dropdowns -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <select id="jump-month-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <select id="jump-year-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;"></select>
+            </div>
+
+            <div class="calendar-actions-wrap">
+              <button type="button" class="btn btn-secondary btn-sm" id="view-monthly-summary-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>View Monthly Summary</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" id="generate-monthly-pdf-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Generate PDF Statement</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="card" style="margin-bottom: 1.25rem; padding: 0.85rem 1.25rem;">
+          <div class="calendar-filters-bar" style="margin-bottom: 0; padding-bottom: 0; border: none;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Filters:</span>
+            
+            <select id="cal-filter-type" class="form-select" style="width: auto;">
+              <option value="">All Types</option>
+              <option value="income">Income Only</option>
+              <option value="expense">Expense Only</option>
+            </select>
+
+            <select id="cal-filter-source" class="form-select" style="width: auto;">
+              <option value="">All Sources</option>
+              <option value="phonepe">📱 PhonePe</option>
+              <option value="cash">💵 Cash / Manual</option>
+            </select>
+
+            <select id="cal-filter-category" class="form-select" style="width: auto;">
+              <option value="">All Categories</option>
+            </select>
+
+            <button type="button" class="btn btn-secondary btn-sm" id="cal-reset-filters-btn">Reset</button>
+          </div>
+        </div>
+
+        <!-- Two Column Layout: Month Grid & Day Details -->
+        <div class="calendar-container">
+          
+          <!-- Month Grid Column -->
+          <div class="calendar-card">
+            <!-- Month KPI Summary -->
+            <div class="calendar-month-kpis">
+              <div class="cal-kpi-item">
+                <div class="cal-kpi-label">Month Income</div>
+                <div id="month-kpi-income" class="cal-kpi-value amount-income">₹0.00</div>
+              </div>
+              <div class="cal-kpi-item">
+                <div class="cal-kpi-label">Month Expense</div>
+                <div id="month-kpi-expense" class="cal-kpi-value amount-expense">₹0.00</div>
+              </div>
+              <div class="cal-kpi-item">
+                <div class="cal-kpi-label">Net Savings</div>
+                <div id="month-kpi-net" class="cal-kpi-value">₹0.00</div>
+              </div>
+            </div>
+
+            <!-- Days of Week Header -->
+            <div class="calendar-grid" style="margin-bottom: 4px;">
+              <div class="calendar-day-header">Mon</div>
+              <div class="calendar-day-header">Tue</div>
+              <div class="calendar-day-header">Wed</div>
+              <div class="calendar-day-header">Thu</div>
+              <div class="calendar-day-header">Fri</div>
+              <div class="calendar-day-header">Sat</div>
+              <div class="calendar-day-header">Sun</div>
+            </div>
+
+            <!-- Interactive Days Grid -->
+            <div class="calendar-grid" id="calendar-days-grid">
+              <!-- Dynamically rendered -->
+            </div>
+
+            <!-- Visual Legend -->
+            <div class="calendar-legend">
+              <div class="legend-item">
+                <span class="cal-dot cal-dot-income"></span>
+                <span>Income</span>
+              </div>
+              <div class="legend-item">
+                <span class="cal-dot cal-dot-expense"></span>
+                <span>Expense</span>
+              </div>
+              <div class="legend-item">
+                <span class="cal-dot cal-dot-both"></span>
+                <span>Both Income & Expense</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Date Detail Column -->
+          <div class="day-detail-card">
+            <div class="day-detail-header">
+              <div>
+                <h3 id="selected-date-heading" class="day-detail-title">Select a Date</h3>
+                <span id="selected-date-subtitle" style="font-size: 0.775rem; color: var(--text-muted);">Daily financial activity</span>
+              </div>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="add-tx-this-date-btn">+ Add For Date</button>
+            </div>
+
+            <!-- Daily Summary KPIs -->
+            <div class="day-summary-grid">
+              <div class="day-stat-card">
+                <div class="day-stat-label">Income</div>
+                <div id="day-income" class="day-stat-amount amount-income">₹0.00</div>
+              </div>
+              <div class="day-stat-card">
+                <div class="day-stat-label">Expenses</div>
+                <div id="day-expense" class="day-stat-amount amount-expense">₹0.00</div>
+              </div>
+              <div class="day-stat-card">
+                <div class="day-stat-label">Net</div>
+                <div id="day-net" class="day-stat-amount">₹0.00</div>
+              </div>
+            </div>
+
+            <!-- Daily Transactions List -->
+            <div id="daily-tx-list-wrap">
+              <div class="daily-tx-list" id="daily-tx-list">
+                <!-- Dynamically rendered -->
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="day-empty-state" class="empty-state" style="display: none; padding: 2rem 1rem;">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted); margin-bottom: 0.5rem;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem;">No transactions on this date</h4>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">No financial activity recorded for the selected date.</p>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Smart Monthly Summary Modal (Reusing existing Reports logic) -->
+  <div class="modal-overlay" id="monthly-summary-modal">
+    <div class="modal-container modal-container-lg">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="summary-modal-title">Monthly Financial Summary</h2>
+          <p class="modal-subtitle" id="summary-modal-subtitle">Performance breakdown and insights</p>
+        </div>
+        <button class="modal-close-btn" id="close-summary-modal-btn">&times;</button>
+      </div>
+
+      <div class="modal-body" id="summary-modal-body">
+        <div class="loading-state" style="padding: 3rem; text-align: center;">
+          <div class="spinner" style="margin: 0 auto 1rem;"></div>
+          <p style="color: var(--text-secondary); font-size: 0.875rem;">Loading monthly summary...</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="summary-modal-close-action">Close</button>
+        <button type="button" class="btn btn-primary" id="summary-modal-pdf-btn">Download PDF Statement</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/api.js?v=1.0.5"></script>
+  <script src="../js/toast.js?v=1.0.5"></script>
+  <script src="../js/utils.js?v=1.0.5"></script>
+  <script src="../js/auth.js?v=1.0.5"></script>
+  <script src="../js/calendar.js?v=1.0.5"></script>
+</body>
+</html>

@@ -153,6 +153,30 @@
           </div>
         </div>
 
+        <!-- Danger Zone: Delete My Financial Data Card -->
+        <div class="card" style="margin-bottom: 2rem; border: 1px solid var(--danger-border); background: var(--bg-surface);">
+          <div class="card-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">⚠️</span>
+                <h2 class="card-title" style="color: var(--danger);">Delete My Financial Data</h2>
+              </div>
+              <p class="card-subtitle">Permanently delete financial records while keeping your user account active</p>
+            </div>
+          </div>
+
+          <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
+            Permanently erases all your transactions, budgets, savings goals, reminders, recurring transaction rules, notifications, and statement import records. Your account, profile, and login credentials will remain active. <strong>This action cannot be undone.</strong>
+          </p>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-danger" id="open-delete-data-modal-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              <span>Delete My Financial Data</span>
+            </button>
+          </div>
+        </div>
+
         <!-- About Card -->
         <div class="card">
           <div class="card-header">
@@ -477,6 +501,73 @@
           }
         });
       }
+
+      // 4. Delete My Financial Data Flow
+      const deleteDataModal = document.getElementById('delete-data-modal');
+      const openDeleteDataBtn = document.getElementById('open-delete-data-modal-btn');
+      const closeDeleteDataBtn = document.getElementById('close-delete-data-modal-btn');
+      const cancelDeleteDataBtn = document.getElementById('cancel-delete-data-btn');
+      const confirmDeleteInput = document.getElementById('confirm-delete-input');
+      const confirmDeleteBtn = document.getElementById('confirm-delete-data-btn');
+      const modalQuickBackupBtn = document.getElementById('modal-quick-backup-btn');
+
+      if (openDeleteDataBtn && deleteDataModal) {
+        openDeleteDataBtn.addEventListener('click', () => {
+          if (confirmDeleteInput) confirmDeleteInput.value = '';
+          if (confirmDeleteBtn) confirmDeleteBtn.disabled = true;
+          deleteDataModal.classList.add('active');
+        });
+      }
+
+      function closeDeleteModal() {
+        if (deleteDataModal) deleteDataModal.classList.remove('active');
+        if (confirmDeleteInput) confirmDeleteInput.value = '';
+        if (confirmDeleteBtn) confirmDeleteBtn.disabled = true;
+      }
+
+      if (closeDeleteDataBtn) closeDeleteDataBtn.addEventListener('click', closeDeleteModal);
+      if (cancelDeleteDataBtn) cancelDeleteDataBtn.addEventListener('click', closeDeleteModal);
+
+      if (confirmDeleteInput && confirmDeleteBtn) {
+        confirmDeleteInput.addEventListener('input', (e) => {
+          confirmDeleteBtn.disabled = e.target.value.trim() !== 'DELETE';
+        });
+      }
+
+      if (modalQuickBackupBtn) {
+        modalQuickBackupBtn.addEventListener('click', async () => {
+          try {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const filename = `expenseflow_full_backup_${timestamp}.json`;
+            await ApiClient.downloadFile('/backup/export', {}, filename);
+            showToast('Safety backup downloaded successfully!', 'success');
+          } catch (err) {
+            showToast('Backup failed: ' + err.message, 'error');
+          }
+        });
+      }
+
+      if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', async () => {
+          if (confirmDeleteInput.value.trim() !== 'DELETE') return;
+
+          confirmDeleteBtn.disabled = true;
+          confirmDeleteBtn.textContent = 'Deleting Records...';
+
+          try {
+            const res = await ApiClient.delete('/users/financial-data', { confirmation: 'DELETE' });
+            showToast(res.message || 'Financial data deleted successfully.', 'success');
+            closeDeleteModal();
+            setTimeout(() => {
+              window.location.href = '/pages/dashboard.html';
+            }, 1200);
+          } catch (err) {
+            showToast('Failed to delete data: ' + err.message, 'error');
+            confirmDeleteBtn.disabled = false;
+            confirmDeleteBtn.textContent = 'Delete All Financial Data';
+          }
+        });
+      }
     });
   </script>
 
@@ -544,6 +635,63 @@
       <div class="modal-footer" id="restore-modal-footer">
         <button type="button" class="btn btn-secondary" id="cancel-restore-btn">Cancel</button>
         <button type="button" class="btn btn-primary" id="confirm-restore-btn" style="display: none;">Restore Backup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Financial Data Warning Modal -->
+  <div class="modal-overlay" id="delete-data-modal">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--danger-border);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">⚠️</span>
+            <h2 class="modal-title" style="color: var(--danger);">Delete All Financial Data?</h2>
+          </div>
+          <p class="modal-subtitle" style="color: var(--danger); font-weight: 700;">THIS ACTION CANNOT BE UNDONE</p>
+        </div>
+        <button class="modal-close-btn" id="close-delete-data-modal-btn">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem;">
+        <div style="background: var(--danger-light); border: 1px solid var(--danger-border); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+          <p style="font-size: 0.875rem; color: var(--danger-text); font-weight: 700; margin-bottom: 0.5rem;">
+            This will permanently remove:
+          </p>
+          <ul style="font-size: 0.825rem; color: var(--danger-text); margin-left: 1.25rem; line-height: 1.6;">
+            <li>All manual and PhonePe transactions</li>
+            <li>All monthly budget limits and tracking</li>
+            <li>All savings goals and milestones</li>
+            <li>All payment reminders</li>
+            <li>All recurring transaction schedules</li>
+            <li>All notifications and statement import logs</li>
+          </ul>
+          <p style="font-size: 0.8rem; color: var(--danger-text); margin-top: 0.5rem;">
+            <strong>Note:</strong> Your account profile, login email, password, and default categories will remain intact.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.825rem; color: var(--text-main);">Recommended: Export a Backup First</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Save a copy of your records before deleting</div>
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="modal-quick-backup-btn">Backup Now</button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="confirm-delete-input" style="font-weight: 700;">
+            Type <span style="color: var(--danger); font-family: monospace; font-size: 1rem;">DELETE</span> to confirm:
+          </label>
+          <input type="text" id="confirm-delete-input" class="form-input" placeholder="Type DELETE here" autocomplete="off" style="font-family: monospace; font-weight: 700; letter-spacing: 0.05em;">
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" id="cancel-delete-data-btn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete-data-btn" disabled>
+          <span>Delete All Financial Data</span>
+        </button>
       </div>
     </div>
   </div>

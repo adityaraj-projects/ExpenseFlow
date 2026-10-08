@@ -107,8 +107,8 @@ class TestPhonePeAndCashTransactions(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data["statement_format"], "PhonePe PDF Statement")
-        self.assertEqual(data["total_count"], 81)
-        self.assertEqual(len(data["items"]), 81)
+        self.assertEqual(data["total_count"], 97)
+        self.assertEqual(len(data["items"]), 97)
 
         # Verify fields of first item
         item0 = data["items"][0]
@@ -191,8 +191,8 @@ class TestPhonePeAndCashTransactions(unittest.TestCase):
 
         # Duplicate detection verification:
         self.assertEqual(data2["duplicate_count"], 5)
-        self.assertEqual(data2["new_count"], 76)
-        self.assertEqual(data2["total_count"], 81)
+        self.assertEqual(data2["new_count"], 92)
+        self.assertEqual(data2["total_count"], 97)
 
         # Check that the first 5 are marked Already Imported
         for it in data2["items"][:5]:
@@ -213,7 +213,7 @@ class TestPhonePeAndCashTransactions(unittest.TestCase):
 
         data = res.json()
         self.assertEqual(data["duplicate_count"], 0)
-        self.assertEqual(data["new_count"], 81)
+        self.assertEqual(data["new_count"], 97)
 
     def test_07_transaction_source_filtering(self):
         """Verify transactions list can be filtered by source='cash' or source='phonepe'."""
@@ -388,6 +388,158 @@ class TestPhonePeAndCashTransactions(unittest.TestCase):
         # User B attempts to DELETE User A's transaction
         del_b = self.client.delete(f"/api/transactions/{target_tx_id}", headers=self.headers_b)
         self.assertEqual(del_b.status_code, 404)
+
+    def test_17_multiline_emoji_party_parsing(self):
+        """Verify multiline descriptions with emojis are successfully parsed."""
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            res = self.client.post("/api/statements/parse-phonepe", files=files, headers=self.headers_a)
+
+        items = res.json()["items"]
+        # Find transaction T2610011030105555051340
+        tx = next((it for it in items if it["external_transaction_id"] == "T2610011030105555051340"), None)
+        self.assertIsNotNone(tx)
+        self.assertEqual(float(tx["amount"]), 100.00)
+        self.assertEqual(tx["type"], "expense")
+        self.assertEqual(tx["transaction_date"], "2026-10-01")
+        self.assertEqual(tx["transaction_time"], "10:30 AM")
+
+        # Find 40,000 credit transaction T2609172202457755030159
+        credit_tx = next((it for it in items if it["external_transaction_id"] == "T2609172202457755030159"), None)
+        self.assertIsNotNone(credit_tx)
+        self.assertEqual(float(credit_tx["amount"]), 40000.00)
+        self.assertEqual(credit_tx["type"], "income")
+        self.assertEqual(credit_tx["transaction_date"], "2026-09-17")
+
+    def test_18_autopay_and_mobile_recharges(self):
+        """Verify AutoPay and Mobile recharge transactions with OM and NB IDs are parsed."""
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            res = self.client.post("/api/statements/parse-phonepe", files=files, headers=self.headers_a)
+
+        items = res.json()["items"]
+        autopay_tx = next((it for it in items if it["external_transaction_id"] == "OM2609140121122586464687W"), None)
+        self.assertIsNotNone(autopay_tx)
+        self.assertEqual(float(autopay_tx["amount"]), 2.00)
+        self.assertEqual(autopay_tx["type"], "expense")
+        self.assertEqual(autopay_tx["suggested_category_name"], "Bills & Utilities")
+
+        recharge_tx = next((it for it in items if it["external_transaction_id"] == "NB26091108575377690427842"), None)
+        self.assertIsNotNone(recharge_tx)
+        self.assertEqual(float(recharge_tx["amount"]), 222.00)
+        self.assertEqual(recharge_tx["type"], "expense")
+        self.assertEqual(recharge_tx["suggested_category_name"], "Bills & Utilities")
+
+    def test_19_financial_calculation_from_pdf(self):
+        """Verify that the sum of debit and credit amounts from sample PDF match exactly."""
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            res = self.client.post("/api/statements/parse-phonepe", files=files, headers=self.headers_a)
+
+        items = res.json()["items"]
+        total_debit = sum(Decimal(str(it["amount"])) for it in items if it["type"] == "expense")
+        total_credit = sum(Decimal(str(it["amount"])) for it in items if it["type"] == "income")
+        self.assertEqual(total_debit, Decimal("52205.82"))
+        self.assertEqual(total_credit, Decimal("51743.00"))
+        self.assertEqual(total_credit - total_debit, Decimal("-462.82"))
+
+    def test_20_new_user_full_import_and_deduplication(self):
+        """End-to-end test of a completely new user importing all transactions, verifying balances and idempotency."""
+        import time
+        ts = int(time.time() * 1000)
+        reg_c = self.client.post("/api/auth/register", json={
+            "full_name": f"Test User Charlie {ts}",
+            "email": f"user_charlie_{ts}@example.com",
+            "password": "Password123!",
+            "confirm_password": "Password123!",
+            "currency": "INR"
+        })
+        self.assertEqual(reg_c.status_code, 201)
+        token_c = reg_c.json()["access_token"]
+        headers_c = {"Authorization": f"Bearer {token_c}"}
+
+        # 1. Parse statement preview
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            parse_res = self.client.post("/api/statements/parse-phonepe", files=files, headers=headers_c)
+        self.assertEqual(parse_res.status_code, 200)
+        data = parse_res.json()
+        self.assertEqual(data["total_count"], 97)
+        self.assertEqual(data["new_count"], 97)
+        self.assertEqual(data["duplicate_count"], 0)
+
+        # 2. Import all 97
+        import_payload = {
+            "transactions": [
+                {
+                    "transaction_date": it["transaction_date"],
+                    "transaction_time": it["transaction_time"],
+                    "type": it["type"],
+                    "amount": it["amount"],
+                    "description": it["description"],
+                    "category_id": it["suggested_category_id"],
+                    "external_transaction_id": it["external_transaction_id"],
+                    "external_utr": it["external_utr"],
+                    "source": "phonepe"
+                }
+                for it in data["items"]
+            ]
+        }
+        imp_res = self.client.post("/api/statements/import-phonepe", json=import_payload, headers=headers_c)
+        self.assertEqual(imp_res.status_code, 200)
+        self.assertEqual(imp_res.json()["imported_count"], 97)
+        self.assertEqual(imp_res.json()["skipped_count"], 0)
+
+        # 3. Check dashboard balance
+        dash_res = self.client.get("/api/dashboard", headers=headers_c)
+        self.assertEqual(dash_res.status_code, 200)
+        dash_data = dash_res.json()
+        bal = float(dash_data["summary"]["total_balance"])
+        inc = float(dash_data["summary"]["total_income"])
+        exp = float(dash_data["summary"]["total_expenses"])
+        self.assertAlmostEqual(bal, -462.82, places=2)
+        self.assertAlmostEqual(inc, 51743.00, places=2)
+        self.assertAlmostEqual(exp, 52205.82, places=2)
+
+        # 4. Re-parse statement -> all 97 must be duplicate
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            re_parse_res = self.client.post("/api/statements/parse-phonepe", files=files, headers=headers_c)
+        re_data = re_parse_res.json()
+        self.assertEqual(re_data["total_count"], 97)
+        self.assertEqual(re_data["new_count"], 0)
+        self.assertEqual(re_data["duplicate_count"], 97)
+
+        # 5. Re-import all 97 -> 0 imported, 97 skipped
+        re_imp_res = self.client.post("/api/statements/import-phonepe", json=import_payload, headers=headers_c)
+        self.assertEqual(re_imp_res.status_code, 200)
+        self.assertEqual(re_imp_res.json()["imported_count"], 0)
+        self.assertEqual(re_imp_res.json()["skipped_count"], 97)
+
+        # Dashboard balance remains untouched
+        dash_res2 = self.client.get("/api/dashboard", headers=headers_c)
+        bal2 = float(dash_res2.json()["summary"]["total_balance"])
+        self.assertAlmostEqual(bal2, -462.82, places=2)
+
+    def test_21_date_and_time_preservation(self):
+        """Verify that parsed date and time reflect original statement values, not upload timestamp."""
+        with open(self.sample_pdf_path, "rb") as f:
+            files = {"file": ("statement.pdf", f, "application/pdf")}
+            res = self.client.post("/api/statements/parse-phonepe", files=files, headers=self.headers_a)
+
+        items = res.json()["items"]
+        # Spot check three distinct items
+        item_oct2 = next(it for it in items if it["external_transaction_id"] == "T2610021707466327727299")
+        self.assertEqual(item_oct2["transaction_date"], "2026-10-02")
+        self.assertEqual(item_oct2["transaction_time"], "05:07 PM")
+
+        item_sep14 = next(it for it in items if it["external_transaction_id"] == "OM2609140121122586464687W")
+        self.assertEqual(item_sep14["transaction_date"], "2026-09-14")
+        self.assertEqual(item_sep14["transaction_time"], "01:21 AM")
+
+        item_sep2 = next(it for it in items if it["external_transaction_id"] == "T2609020850255395995466")
+        self.assertEqual(item_sep2["transaction_date"], "2026-09-02")
+        self.assertEqual(item_sep2["transaction_time"], "08:50 AM")
 
 
 if __name__ == "__main__":

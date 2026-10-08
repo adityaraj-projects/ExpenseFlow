@@ -523,9 +523,84 @@ class ReportService:
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ]))
         story.append(sum_table)
-        story.append(Spacer(1, 18))
+        story.append(Spacer(1, 14))
 
-        # 4. Transaction History Table
+        # 4. Source Breakdown & Category Breakdown
+        phonepe_inc = sum((t.amount for t in txs if t.source == "phonepe" and t.type == TransactionType.INCOME), Decimal("0.00"))
+        phonepe_exp = sum((t.amount for t in txs if t.source == "phonepe" and t.type == TransactionType.EXPENSE), Decimal("0.00"))
+        cash_inc = sum((t.amount for t in txs if (t.source in ["cash", "manual", None, ""]) and t.type == TransactionType.INCOME), Decimal("0.00"))
+        cash_exp = sum((t.amount for t in txs if (t.source in ["cash", "manual", None, ""]) and t.type == TransactionType.EXPENSE), Decimal("0.00"))
+
+        src_rows = [
+            [
+                Paragraph("<b>Payment Source</b>", table_header),
+                Paragraph("<b>Income (₹)</b>", table_header),
+                Paragraph("<b>Expense (₹)</b>", table_header),
+                Paragraph("<b>Net (₹)</b>", table_header)
+            ],
+            [
+                Paragraph("PhonePe", table_cell),
+                Paragraph(f"₹{phonepe_inc:,.2f}", table_cell),
+                Paragraph(f"₹{phonepe_exp:,.2f}", table_cell),
+                Paragraph(f"₹{(phonepe_inc - phonepe_exp):,.2f}", table_cell)
+            ],
+            [
+                Paragraph("Cash / Manual", table_cell),
+                Paragraph(f"₹{cash_inc:,.2f}", table_cell),
+                Paragraph(f"₹{cash_exp:,.2f}", table_cell),
+                Paragraph(f"₹{(cash_inc - cash_exp):,.2f}", table_cell)
+            ]
+        ]
+        src_table = Table(src_rows, colWidths=[130, 130, 130, 130])
+        src_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F1F5F9')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('LEFTPADDING', (0,0), (-1,-1), 6),
+            ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(Paragraph("<b>Source Breakdown</b>", section_title))
+        story.append(src_table)
+        story.append(Spacer(1, 14))
+
+        # Top Spending Categories Breakdown
+        cat_map = {}
+        for t in txs:
+            if t.type == TransactionType.EXPENSE:
+                cname = t.category.name if t.category else "Uncategorized"
+                cat_map[cname] = cat_map.get(cname, Decimal("0.00")) + t.amount
+
+        if cat_map:
+            sorted_cats = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)[:6]
+            cat_rows = [
+                [
+                    Paragraph("<b>Top Expense Categories</b>", table_header),
+                    Paragraph("<b>Amount (₹)</b>", table_header),
+                    Paragraph("<b>% of Spending</b>", table_header)
+                ]
+            ]
+            for cname, camt in sorted_cats:
+                cpct = (camt / total_expense * 100) if total_expense > 0 else Decimal("0.0")
+                cat_rows.append([
+                    Paragraph(cname, table_cell),
+                    Paragraph(f"₹{camt:,.2f}", table_cell),
+                    Paragraph(f"{cpct:.1f}%", table_cell)
+                ])
+            cat_table = Table(cat_rows, colWidths=[200, 160, 160])
+            cat_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#F1F5F9')),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+                ('TOPPADDING', (0,0), (-1,-1), 4),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('LEFTPADDING', (0,0), (-1,-1), 6),
+                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+            ]))
+            story.append(Paragraph("<b>Category Breakdown</b>", section_title))
+            story.append(cat_table)
+            story.append(Spacer(1, 16))
+
+        # 5. Transaction History Table
         story.append(Paragraph(f"Transaction History ({len(txs)} transactions)", section_title))
         tx_rows = [
             [

@@ -8,6 +8,7 @@ from app.models.recurring_transaction import RecurringTransaction, RecurringFreq
 from app.models.notification import Notification, NotificationType
 from app.models.push_subscription import PushSubscription
 from app.models.user_preference import UserPreference
+from app.models.statement_import import StatementImport
 
 __all__ = [
     "User",
@@ -29,4 +30,5 @@ __all__ = [
     "NotificationType",
     "PushSubscription",
     "UserPreference",
+    "StatementImport",
 ]

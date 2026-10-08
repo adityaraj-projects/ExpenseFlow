@@ -45,11 +45,37 @@ class PhonePeImportItem(BaseModel):
     source: Optional[str] = "phonepe"
 
 
+from datetime import datetime
+
+
 class PhonePeImportRequest(BaseModel):
     transactions: List[PhonePeImportItem]
+    filename: Optional[str] = None
+    statement_period: Optional[str] = None
+    total_found: Optional[int] = None
 
 
 class PhonePeImportResponse(BaseModel):
     imported_count: int
     skipped_count: int
     message: str
+    import_id: Optional[int] = None
+    statement_period: Optional[str] = None
+
+
+class StatementImportResponse(BaseModel):
+    id: int
+    user_id: int
+    source: str
+    statement_period: Optional[str] = None
+    imported_at: datetime
+    filename: Optional[str] = None
+    total_found: int
+    total_new: int
+    total_duplicates: int
+    total_failed: int
+    status: str
+    error_message: Optional[str] = None
+
+    class Config:
+        from_attributes = True
