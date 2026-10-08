@@ -30,18 +30,24 @@ def _apply_filters(
 
     if source and source.strip() and source.lower() != "all":
         s_lower = source.strip().lower()
-        if s_lower in ["cash", "manual"]:
+        if s_lower == "phonepe":
+            query = query.filter(func.lower(Transaction.source) == "phonepe")
+        elif s_lower == "cash":
+            query = query.filter(func.lower(Transaction.source) == "cash")
+        elif s_lower == "manual":
+            query = query.filter(func.lower(Transaction.source) == "manual")
+        elif s_lower == "bank":
+            query = query.filter(func.lower(Transaction.source) == "bank")
+        elif s_lower in ["cash_manual", "cash/manual"]:
             query = query.filter(
                 or_(
-                    Transaction.source == "cash",
-                    Transaction.source == "manual",
+                    func.lower(Transaction.source) == "cash",
+                    func.lower(Transaction.source) == "manual",
                     Transaction.source.is_(None)
                 )
             )
-        elif s_lower == "phonepe":
-            query = query.filter(Transaction.source == "phonepe")
         else:
-            query = query.filter(Transaction.source == source.strip())
+            query = query.filter(func.lower(Transaction.source) == s_lower)
 
     return query
 
@@ -50,7 +56,7 @@ def _apply_filters(
 def get_calendar_month(
     year: int = Query(..., ge=2000, le=2100, description="Year (e.g. 2026)"),
     month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
-    source: Optional[str] = Query(None, description="Source filter ('all', 'phonepe', 'cash')"),
+    source: Optional[str] = Query(None, description="Source filter ('all', 'phonepe', 'cash', 'manual', 'bank')"),
     type: Optional[str] = Query(None, description="Type filter ('income', 'expense')"),
     category_id: Optional[int] = Query(None, description="Category filter"),
     current_user: User = Depends(get_current_user),
@@ -66,7 +72,7 @@ def get_calendar_month(
     start_date = date(year, month, 1)
     end_date = date(year, month, last_day)
 
-    base_query = db.query(Transaction).join(Category).filter(
+    base_query = db.query(Transaction).outerjoin(Category).filter(
         Transaction.user_id == current_user.id,
         Transaction.transaction_date >= start_date,
         Transaction.transaction_date <= end_date
@@ -171,7 +177,7 @@ def get_calendar_day(
     - Daily Net Balance
     - Full list of transactions sorted newest first with exact time and source badges
     """
-    base_query = db.query(Transaction).join(Category).filter(
+    base_query = db.query(Transaction).outerjoin(Category).filter(
         Transaction.user_id == current_user.id,
         Transaction.transaction_date == target_date
     )

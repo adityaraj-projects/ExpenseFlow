@@ -37,19 +37,24 @@
       padding: 1.25rem;
     }
 
+    .calendar-toolbar-card {
+      margin-bottom: 1.25rem;
+      padding: 1rem 1.25rem;
+    }
+
     .calendar-nav-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 0.75rem;
-      margin-bottom: 1.25rem;
     }
 
     .calendar-title-wrap {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
 
     .calendar-title {
@@ -57,9 +62,16 @@
       font-weight: 800;
       color: var(--text-main);
       margin: 0;
+      min-width: 170px;
     }
 
     .calendar-nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .calendar-jump-controls {
       display: flex;
       align-items: center;
       gap: 0.4rem;
@@ -70,6 +82,31 @@
       align-items: center;
       gap: 0.5rem;
       flex-wrap: wrap;
+    }
+
+    .calendar-toolbar-divider {
+      border: 0;
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0.85rem 0;
+    }
+
+    .calendar-filters-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-label-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .calendar-month-kpis {
@@ -98,16 +135,6 @@
       font-size: 1rem;
       font-weight: 800;
       margin-top: 0.15rem;
-    }
-
-    .calendar-filters-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 1.25rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border-subtle);
     }
 
     .calendar-grid {
@@ -355,35 +382,35 @@
       <header class="app-header" id="app-header"></header>
 
       <main class="page-content">
-        <!-- Top Toolbar & Navigation -->
-        <div class="card" style="margin-bottom: 1.25rem; padding: 1.25rem;">
-          <div class="calendar-nav-bar" style="margin-bottom: 0;">
+        <!-- Unified Toolbar & Filter Controls -->
+        <div class="card calendar-toolbar-card">
+          <div class="calendar-nav-bar">
             <div class="calendar-title-wrap">
-              <h2 id="calendar-month-title" class="calendar-title">October 2026</h2>
+              <h2 id="calendar-month-title" class="calendar-title"></h2>
               <div class="calendar-nav-controls">
                 <button type="button" class="btn btn-secondary btn-sm" id="prev-month-btn" title="Previous Month" aria-label="Previous Month">&larr; Prev</button>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="today-btn" title="Jump to Current Month">Today</button>
                 <button type="button" class="btn btn-secondary btn-sm" id="next-month-btn" title="Next Month" aria-label="Next Month">Next &rarr;</button>
               </div>
-            </div>
 
-            <!-- Jump to Month/Year Dropdowns -->
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <select id="jump-month-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;">
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
-              <select id="jump-year-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;"></select>
+              <!-- Jump to Month/Year Dropdowns -->
+              <div class="calendar-jump-controls">
+                <select id="jump-month-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;" aria-label="Select Month">
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+                <select id="jump-year-select" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;" aria-label="Select Year"></select>
+              </div>
             </div>
 
             <div class="calendar-actions-wrap">
@@ -397,29 +424,29 @@
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Filter Controls -->
-        <div class="card" style="margin-bottom: 1.25rem; padding: 0.85rem 1.25rem;">
-          <div class="calendar-filters-bar" style="margin-bottom: 0; padding-bottom: 0; border: none;">
-            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Filters:</span>
-            
-            <select id="cal-filter-type" class="form-select" style="width: auto;">
+          <hr class="calendar-toolbar-divider">
+
+          <div class="calendar-filters-row">
+            <div class="filter-label-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              <span>Filters:</span>
+            </div>
+            <select id="cal-filter-type" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;">
               <option value="">All Types</option>
               <option value="income">Income Only</option>
               <option value="expense">Expense Only</option>
             </select>
-
-            <select id="cal-filter-source" class="form-select" style="width: auto;">
+            <select id="cal-filter-source" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;">
               <option value="">All Sources</option>
               <option value="phonepe">📱 PhonePe</option>
-              <option value="cash">💵 Cash / Manual</option>
+              <option value="cash">💵 Cash</option>
+              <option value="manual">✍️ Manual</option>
+              <option value="bank">🏦 Bank</option>
             </select>
-
-            <select id="cal-filter-category" class="form-select" style="width: auto;">
+            <select id="cal-filter-category" class="form-select" style="width: auto; padding: 0.35rem 0.65rem;">
               <option value="">All Categories</option>
             </select>
-
             <button type="button" class="btn btn-secondary btn-sm" id="cal-reset-filters-btn">Reset</button>
           </div>
         </div>

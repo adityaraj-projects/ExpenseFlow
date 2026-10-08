@@ -1,10 +1,20 @@
 /**
  * ExpenseFlow - Calendar & Daily Finance Module
+ * Fully integrated with application shell, real PhonePe statement data,
+ * state synchronization, dynamic filtering, and monthly statement export.
  */
 
-let currentYear = new Date().getFullYear();
-let currentMonth = new Date().getMonth() + 1; // 1-12
-let selectedDate = formatDateInput(new Date());
+// Single Source of Truth for Calendar State
+const _now = new Date();
+const _urlParams = new URLSearchParams(window.location.search);
+const _paramYear = parseInt(_urlParams.get('year'), 10);
+const _paramMonth = parseInt(_urlParams.get('month'), 10);
+const _paramDate = _urlParams.get('date');
+
+let selectedYear = (!isNaN(_paramYear) && _paramYear >= 2000 && _paramYear <= 2100) ? _paramYear : _now.getFullYear();
+let selectedMonth = (!isNaN(_paramMonth) && _paramMonth >= 1 && _paramMonth <= 12) ? _paramMonth : (_now.getMonth() + 1);
+let selectedDate = _paramDate && /^\d{4}-\d{2}-\d{2}$/.test(_paramDate) ? _paramDate : formatDateInput(_now);
+
 let currentMonthData = null;
 let userCurrency = 'INR';
 let calendarFilters = {
@@ -13,20 +23,39 @@ let calendarFilters = {
   category_id: ''
 };
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!Auth.requireAuth('calendar')) return;
+  // 1. Initialize Global App Shell (Sidebar, Header, Profile, Theme)
+  Auth.initAppShell('calendar');
 
   const user = Auth.getCurrentUser();
   if (user && user.currency) {
     userCurrency = user.currency;
   }
 
+  // 2. Initialize year dropdown (2020..2030) and synchronize month/year controls
   initYearSelector();
+  syncMonthYearControls(selectedYear, selectedMonth);
+
+  // 3. Immediately render initial calendar skeleton dates (1..31) before network request
+  // so the grid is never blank or missing dates
+  renderInitialGridSkeleton(selectedYear, selectedMonth);
+
+  // 4. Attach event listeners
   initCalendarEventListeners();
+
+  // 5. Load dynamic categories & real backend month data
   await loadCategories();
   await loadMonthData();
 });
 
+/**
+ * Populate year selector dropdown with range 2020..2030
+ */
 function initYearSelector() {
   const yearSelect = document.getElementById('jump-year-select');
   if (!yearSelect) return;
@@ -36,39 +65,130 @@ function initYearSelector() {
   yearSelect.innerHTML = '';
   for (let y = startYear; y <= endYear; y++) {
     const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    if (y === currentYear) opt.selected = true;
+    opt.value = String(y);
+    opt.textContent = String(y);
+    if (y === selectedYear) opt.selected = true;
     yearSelect.appendChild(opt);
+  }
+  yearSelect.value = String(selectedYear);
+}
+
+/**
+ * Synchronize all month/year controls with single source of truth
+ */
+function syncMonthYearControls(year, month) {
+  selectedYear = Number(year);
+  selectedMonth = Number(month);
+
+  const monthSelect = document.getElementById('jump-month-select');
+  const yearSelect = document.getElementById('jump-year-select');
+  const titleEl = document.getElementById('calendar-month-title');
+
+  if (monthSelect) {
+    monthSelect.value = String(selectedMonth);
+  }
+  if (yearSelect) {
+    yearSelect.value = String(selectedYear);
+  }
+  if (titleEl) {
+    titleEl.textContent = `${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`;
   }
 }
 
+/**
+ * Render initial days grid so date numbers are immediately visible
+ */
+function renderInitialGridSkeleton(year, month) {
+  const gridEl = document.getElementById('calendar-days-grid');
+  if (!gridEl) return;
+
+  gridEl.innerHTML = '';
+
+  const firstDay = new Date(year, month - 1, 1);
+  let firstDayOfWeek = firstDay.getDay() - 1; // Mon = 0, Sun = 6
+  if (firstDayOfWeek === -1) firstDayOfWeek = 6;
+
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-cell empty';
+    gridEl.appendChild(emptyCell);
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const todayStr = formatDateInput(new Date());
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dtStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const cell = document.createElement('div');
+    cell.className = 'calendar-cell';
+    cell.id = `cal-cell-${dtStr}`;
+    cell.setAttribute('data-date', dtStr);
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', '0');
+    cell.setAttribute('aria-label', `${d} ${MONTH_NAMES[month - 1]}`);
+
+    if (dtStr === todayStr) {
+      cell.classList.add('today');
+    }
+    if (dtStr === selectedDate) {
+      cell.classList.add('selected');
+    }
+
+    cell.innerHTML = `
+      <span class="cal-date-num">${d}</span>
+      <div class="cal-indicators"></div>
+    `;
+
+    cell.addEventListener('click', () => selectDate(dtStr));
+    gridEl.appendChild(cell);
+  }
+
+  // Trailing empty cells to fill the row
+  const totalRendered = firstDayOfWeek + daysInMonth;
+  const remainder = totalRendered % 7;
+  if (remainder > 0) {
+    const fillerCount = 7 - remainder;
+    for (let i = 0; i < fillerCount; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'calendar-cell empty';
+      gridEl.appendChild(emptyCell);
+    }
+  }
+}
+
+/**
+ * Initialize event listeners for navigation, filters, and actions
+ */
 function initCalendarEventListeners() {
-  // 1. Navigation buttons
   const prevBtn = document.getElementById('prev-month-btn');
   const nextBtn = document.getElementById('next-month-btn');
   const todayBtn = document.getElementById('today-btn');
   const monthSelect = document.getElementById('jump-month-select');
   const yearSelect = document.getElementById('jump-year-select');
 
+  // Navigation handlers
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
-      currentMonth--;
-      if (currentMonth < 1) {
-        currentMonth = 12;
-        currentYear--;
+      selectedMonth--;
+      if (selectedMonth < 1) {
+        selectedMonth = 12;
+        selectedYear--;
       }
+      syncMonthYearControls(selectedYear, selectedMonth);
+      selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
       loadMonthData();
     });
   }
 
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-      currentMonth++;
-      if (currentMonth > 12) {
-        currentMonth = 1;
-        currentYear++;
+      selectedMonth++;
+      if (selectedMonth > 12) {
+        selectedMonth = 1;
+        selectedYear++;
       }
+      syncMonthYearControls(selectedYear, selectedMonth);
+      selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
       loadMonthData();
     });
   }
@@ -76,28 +196,33 @@ function initCalendarEventListeners() {
   if (todayBtn) {
     todayBtn.addEventListener('click', () => {
       const now = new Date();
-      currentYear = now.getFullYear();
-      currentMonth = now.getMonth() + 1;
+      selectedYear = now.getFullYear();
+      selectedMonth = now.getMonth() + 1;
       selectedDate = formatDateInput(now);
+      syncMonthYearControls(selectedYear, selectedMonth);
       loadMonthData();
     });
   }
 
   if (monthSelect) {
     monthSelect.addEventListener('change', (e) => {
-      currentMonth = parseInt(e.target.value, 10);
+      selectedMonth = parseInt(e.target.value, 10);
+      syncMonthYearControls(selectedYear, selectedMonth);
+      selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
       loadMonthData();
     });
   }
 
   if (yearSelect) {
     yearSelect.addEventListener('change', (e) => {
-      currentYear = parseInt(e.target.value, 10);
+      selectedYear = parseInt(e.target.value, 10);
+      syncMonthYearControls(selectedYear, selectedMonth);
+      selectedDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
       loadMonthData();
     });
   }
 
-  // 2. Filters
+  // Filter handlers
   const filterType = document.getElementById('cal-filter-type');
   const filterSource = document.getElementById('cal-filter-source');
   const filterCategory = document.getElementById('cal-filter-category');
@@ -134,7 +259,7 @@ function initCalendarEventListeners() {
     });
   }
 
-  // 3. Actions: View Monthly Summary & Generate PDF
+  // Monthly Summary & PDF Actions
   const viewSummaryBtn = document.getElementById('view-monthly-summary-btn');
   const generatePdfBtn = document.getElementById('generate-monthly-pdf-btn');
 
@@ -174,6 +299,9 @@ function initCalendarEventListeners() {
   }
 }
 
+/**
+ * Load user categories for filter dropdown
+ */
 async function loadCategories() {
   try {
     const categories = await ApiClient.get('/categories');
@@ -188,17 +316,16 @@ async function loadCategories() {
   }
 }
 
+/**
+ * Fetch calendar data for selected month/year from backend
+ */
 async function loadMonthData() {
   try {
-    // Sync jump selectors
-    const monthSelect = document.getElementById('jump-month-select');
-    const yearSelect = document.getElementById('jump-year-select');
-    if (monthSelect) monthSelect.value = currentMonth;
-    if (yearSelect) yearSelect.value = currentYear;
+    syncMonthYearControls(selectedYear, selectedMonth);
 
     const params = {
-      year: currentYear,
-      month: currentMonth
+      year: selectedYear,
+      month: selectedMonth
     };
     if (calendarFilters.type) params.type = calendarFilters.type;
     if (calendarFilters.source) params.source = calendarFilters.source;
@@ -225,11 +352,11 @@ async function loadMonthData() {
       netEl.className = data.net_balance >= 0 ? 'cal-kpi-value amount-income' : 'cal-kpi-value amount-expense';
     }
 
-    // Render Calendar Month Grid
+    // Render Calendar Month Grid with real indicators
     renderCalendarGrid(data);
 
     // If currently selected date is in this month, retain it; otherwise select today or 1st day of month
-    const curMonthPrefix = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const curMonthPrefix = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
     if (!selectedDate || !selectedDate.startsWith(curMonthPrefix)) {
       const todayStr = formatDateInput(new Date());
       if (todayStr.startsWith(curMonthPrefix)) {
@@ -246,18 +373,20 @@ async function loadMonthData() {
   }
 }
 
+/**
+ * Render the interactive calendar grid with real activity indicators
+ */
 function renderCalendarGrid(data) {
   const gridEl = document.getElementById('calendar-days-grid');
   if (!gridEl) return;
 
   gridEl.innerHTML = '';
 
-  const firstDay = new Date(currentYear, currentMonth - 1, 1);
-  // Monday is 0, Sunday is 6
-  let firstDayOfWeek = firstDay.getDay() - 1;
+  const firstDay = new Date(selectedYear, selectedMonth - 1, 1);
+  let firstDayOfWeek = firstDay.getDay() - 1; // Mon = 0, Sun = 6
   if (firstDayOfWeek === -1) firstDayOfWeek = 6;
 
-  // Render leading empty cells
+  // Leading empty cells
   for (let i = 0; i < firstDayOfWeek; i++) {
     const emptyCell = document.createElement('div');
     emptyCell.className = 'calendar-cell empty';
@@ -268,7 +397,7 @@ function renderCalendarGrid(data) {
 
   // Render active month days
   for (let d = 1; d <= data.days_in_month; d++) {
-    const dtStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dtStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const dayEntry = data.days[dtStr] || { indicator: 'none', count: 0 };
 
     const cell = document.createElement('div');
@@ -276,6 +405,7 @@ function renderCalendarGrid(data) {
     cell.id = `cal-cell-${dtStr}`;
     cell.setAttribute('data-date', dtStr);
     cell.setAttribute('role', 'button');
+    cell.setAttribute('tabindex', '0');
     cell.setAttribute('aria-label', `${d} ${data.month_name}`);
 
     if (dtStr === todayStr) {
@@ -304,8 +434,23 @@ function renderCalendarGrid(data) {
     cell.addEventListener('click', () => selectDate(dtStr));
     gridEl.appendChild(cell);
   }
+
+  // Trailing empty cells to fill the row
+  const totalRendered = firstDayOfWeek + data.days_in_month;
+  const remainder = totalRendered % 7;
+  if (remainder > 0) {
+    const fillerCount = 7 - remainder;
+    for (let i = 0; i < fillerCount; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'calendar-cell empty';
+      gridEl.appendChild(emptyCell);
+    }
+  }
 }
 
+/**
+ * Handle user selection of a specific calendar date
+ */
 function selectDate(dtStr) {
   selectedDate = dtStr;
 
@@ -318,7 +463,7 @@ function selectDate(dtStr) {
     activeCell.classList.add('selected');
   }
 
-  // Format date display (e.g. "20 October 2026")
+  // Format date display (e.g. "5 October 2026")
   const parts = dtStr.split('-');
   const y = parseInt(parts[0], 10);
   const m = parseInt(parts[1], 10) - 1;
@@ -335,7 +480,7 @@ function selectDate(dtStr) {
   const subtitleEl = document.getElementById('selected-date-subtitle');
   if (headingEl) headingEl.textContent = formattedDate;
 
-  // Filter transactions for this day
+  // Filter transactions for this day from current month dataset
   const dayTransactions = (currentMonthData && currentMonthData.transactions)
     ? currentMonthData.transactions.filter(t => t.transaction_date === dtStr)
     : [];
@@ -374,6 +519,25 @@ function selectDate(dtStr) {
   renderDailyTransactions(dayTransactions);
 }
 
+/**
+ * Return styled HTML badge for transaction payment source
+ */
+function getSourceBadge(source) {
+  const s = (source || '').toLowerCase().trim();
+  if (s === 'phonepe') {
+    return `<span class="source-badge source-badge-phonepe">📱 PhonePe</span>`;
+  } else if (s === 'cash') {
+    return `<span class="source-badge source-badge-cash">💵 Cash</span>`;
+  } else if (s === 'bank') {
+    return `<span class="source-badge source-badge-bank">🏦 Bank</span>`;
+  } else {
+    return `<span class="source-badge source-badge-manual">✍️ Manual</span>`;
+  }
+}
+
+/**
+ * Render individual transactions for the selected day
+ */
 function renderDailyTransactions(transactions) {
   const listEl = document.getElementById('daily-tx-list');
   const emptyEl = document.getElementById('day-empty-state');
@@ -391,12 +555,8 @@ function renderDailyTransactions(transactions) {
     const isIncome = tx.type === 'income';
     const amountClass = isIncome ? 'amount-income' : 'amount-expense';
     const prefix = isIncome ? '+' : '-';
-    const isPhonePe = (tx.source || '').toLowerCase() === 'phonepe';
-    const sourceBadge = isPhonePe
-      ? `<span class="source-badge source-badge-phonepe">📱 PhonePe</span>`
-      : `<span class="source-badge source-badge-cash">💵 Cash</span>`;
-
-    const timeStr = tx.transaction_time ? escapeHtml(tx.transaction_time) : 'All Day';
+    const sourceBadge = getSourceBadge(tx.source);
+    const timeStr = tx.transaction_time ? escapeHtml(tx.transaction_time) : 'Time not available';
 
     return `
       <div class="daily-tx-item">
@@ -424,6 +584,9 @@ function renderDailyTransactions(transactions) {
   }).join('');
 }
 
+/**
+ * Generate PDF financial statement for currently selected month and year
+ */
 async function downloadMonthlyPdf() {
   const btn = document.getElementById('generate-monthly-pdf-btn');
   const originalText = btn ? btn.innerHTML : '';
@@ -433,12 +596,12 @@ async function downloadMonthlyPdf() {
   }
 
   try {
-    const filename = `ExpenseFlow_Statement_${currentYear}_${String(currentMonth).padStart(2, '0')}.pdf`;
+    const filename = `ExpenseFlow_Statement_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.pdf`;
     await ApiClient.downloadFile('/reports/monthly-pdf', {
-      month: currentMonth,
-      year: currentYear
+      month: selectedMonth,
+      year: selectedYear
     }, filename);
-    showToast('Monthly financial statement downloaded successfully!', 'success');
+    showToast(`Monthly statement for ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear} downloaded successfully!`, 'success');
   } catch (err) {
     showToast('Failed to generate PDF: ' + err.message, 'error');
   } finally {
@@ -449,6 +612,9 @@ async function downloadMonthlyPdf() {
   }
 }
 
+/**
+ * Open modal with detailed summary and smart insights for currently selected month and year
+ */
 async function openMonthlySummaryModal() {
   const modal = document.getElementById('monthly-summary-modal');
   const body = document.getElementById('summary-modal-body');
@@ -467,8 +633,8 @@ async function openMonthlySummaryModal() {
 
   try {
     const res = await ApiClient.get('/reports/monthly-summary', {
-      month: currentMonth,
-      year: currentYear
+      month: selectedMonth,
+      year: selectedYear
     });
 
     if (title) title.textContent = `${res.month_name} ${res.year} Financial Summary`;
@@ -556,7 +722,23 @@ async function openMonthlySummaryModal() {
   }
 }
 
+/**
+ * Close Monthly Summary Modal
+ */
 function closeMonthlySummaryModal() {
   const modal = document.getElementById('monthly-summary-modal');
   if (modal) modal.classList.remove('active');
+}
+
+/**
+ * Fallback HTML escaping
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

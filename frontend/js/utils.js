@@ -151,6 +151,19 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+/**
+ * Escape HTML to prevent XSS in template literals
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Global initialization on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
